@@ -79,7 +79,7 @@ export function CustomerListPage() {
           <option value="inactive">Inactive</option>
         </select>
         <div className="actions-bar">
-          <Link className="btn-outline" data-testid="cust-add" to="/customers/new">
+          <Link className="btn-primary" data-testid="cust-add" to="/customers/new">
             + New Customer
           </Link>
           <button className="btn-outline" data-testid="cust-export" onClick={handleExport}>

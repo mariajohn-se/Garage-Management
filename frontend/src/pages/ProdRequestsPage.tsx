@@ -112,7 +112,7 @@ export function ProdRequestsPage() {
                     <td>{r.remarks ?? '—'}</td>
                     {canManage && (
                       <td>
-                        <button className="btn-outline" onClick={() => handleDelete(r.id)}>
+                        <button className="btn-danger" onClick={() => handleDelete(r.id)}>
                           Delete
                         </button>
                       </td>

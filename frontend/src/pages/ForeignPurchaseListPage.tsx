@@ -40,7 +40,7 @@ export function ForeignPurchaseListPage() {
           }}
         />
         <div className="actions-bar">
-          <Link className="btn-outline" to="/purchases/foreign/new">
+          <Link className="btn-primary" to="/purchases/foreign/new">
             + New
           </Link>
         </div>

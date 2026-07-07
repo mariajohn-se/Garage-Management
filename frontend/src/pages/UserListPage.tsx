@@ -134,7 +134,7 @@ export function UserListPage() {
         </select>
 
         <div className="actions-bar">
-          <Link className="btn-outline" data-testid="userlist-add" to="/admin/users/new">
+          <Link className="btn-primary" data-testid="userlist-add" to="/admin/users/new">
             + Add User
           </Link>
           <button className="btn-outline" data-testid="userlist-import" onClick={() => fileInputRef.current?.click()}>

@@ -66,7 +66,7 @@ export function LocalPurchaseListPage() {
           }}
         />
         <div className="actions-bar">
-          <Link className="btn-outline" to="/purchases/local/new">
+          <Link className="btn-primary" to="/purchases/local/new">
             + New
           </Link>
         </div>
@@ -116,7 +116,7 @@ export function LocalPurchaseListPage() {
                           Edit
                         </Link>
                         {canManage && (
-                          <button className="btn-outline" onClick={() => handleDelete(p.id)}>
+                          <button className="btn-danger" onClick={() => handleDelete(p.id)}>
                             Delete
                           </button>
                         )}

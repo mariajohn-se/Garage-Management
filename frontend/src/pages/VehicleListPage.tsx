@@ -46,7 +46,7 @@ export function VehicleListPage() {
           }}
         />
         <div className="actions-bar">
-          <Link className="btn-outline" data-testid="veh-add" to="/vehicles/new">
+          <Link className="btn-primary" data-testid="veh-add" to="/vehicles/new">
             + New Vehicle
           </Link>
         </div>

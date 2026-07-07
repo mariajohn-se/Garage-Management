@@ -40,7 +40,7 @@ export function DeliveryNotesPage() {
           }}
         />
         <div className="actions-bar">
-          <Link className="btn-outline" to="/delivery-notes/new">
+          <Link className="btn-primary" to="/delivery-notes/new">
             + New Delivery Note
           </Link>
         </div>

@@ -97,7 +97,7 @@ export function OrderDetailPage() {
             <Link className="btn-outline" to={`/orders/${orderId}/change-customer`}>
               Change Customer
             </Link>
-            <button className="btn-secondary" onClick={handleDelete}>
+            <button className="btn-danger" onClick={handleDelete}>
               Delete Order
             </button>
           </>

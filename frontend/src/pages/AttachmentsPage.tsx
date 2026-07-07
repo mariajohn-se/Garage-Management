@@ -161,7 +161,7 @@ export function AttachmentsPage() {
                     </td>
                     <td>
                       {canDelete && (
-                        <button className="btn-outline" onClick={() => handleDelete(a.id)}>
+                        <button className="btn-danger" onClick={() => handleDelete(a.id)}>
                           Delete
                         </button>
                       )}

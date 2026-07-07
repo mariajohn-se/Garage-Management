@@ -60,7 +60,7 @@ export function OrderListPage() {
           <option value="pending">Pending</option>
         </select>
         <div className="actions-bar">
-          <Link className="btn-outline" data-testid="salesorder-btn-new" to="/orders/new">
+          <Link className="btn-primary" data-testid="salesorder-btn-new" to="/orders/new">
             + New Order
           </Link>
         </div>

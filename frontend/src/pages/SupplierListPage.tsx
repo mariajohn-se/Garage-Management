@@ -71,7 +71,7 @@ export function SupplierListPage() {
           }}
         />
         <div className="actions-bar">
-          <Link className="btn-outline" data-testid="supp-add" to="/suppliers/new">
+          <Link className="btn-primary" data-testid="supp-add" to="/suppliers/new">
             + New Supplier
           </Link>
           <button className="btn-outline" data-testid="supp-export" onClick={handleExport}>

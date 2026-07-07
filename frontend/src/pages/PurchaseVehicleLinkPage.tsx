@@ -106,7 +106,7 @@ export function PurchaseVehicleLinkPage() {
                     <td>{v.amount ?? '—'}</td>
                     <td>{v.completed ? 'Yes' : 'No'}</td>
                     <td>
-                      <button className="btn-outline" onClick={() => handleDelete(v.id)}>
+                      <button className="btn-danger" onClick={() => handleDelete(v.id)}>
                         Unlink
                       </button>
                     </td>

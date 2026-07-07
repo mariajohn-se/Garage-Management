@@ -109,7 +109,7 @@ export function JobStatusMasterPage() {
                   <td>{s.inProgress ? 'Yes' : 'No'}</td>
                   <td>{s.sortOrder ?? '—'}</td>
                   <td>
-                    <button className="btn-outline" onClick={() => handleDelete(s.statusId)}>
+                    <button className="btn-danger" onClick={() => handleDelete(s.statusId)}>
                       Delete
                     </button>
                   </td>
