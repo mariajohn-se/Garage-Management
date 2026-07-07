@@ -2,8 +2,8 @@
 
 DB-Preserve build: an Express/TypeScript + React SPA over the existing legacy SQL Server
 database. No schema changes; writes go through stored procedures, reads through views/tables.
-See `IMPLEMENTATION_PLAN.md` and `PROJECT_PHASE_PROGRESS.md` for the phased build plan and
-current status.
+See `docs/IMPLEMENTATION_PLAN.md` and `docs/PROJECT_PHASE_PROGRESS.md` for the phased build plan
+and current status.
 
 ## Structure
 
