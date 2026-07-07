@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
 import { AdditionalRemark } from '../models/Document';
 
 /**
@@ -91,21 +91,23 @@ export class RemarksRepository {
     };
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog.
+  /** AdditionalRemarks.AdditionalRemarksId is a real identity column - safe to let SQL Server assign it. */
   async create(input: { ordr: string; remarks: string }): Promise<number> {
-    const rows = await callProcedure<{ AdditionalRemarksId: number }>('sp_AddRemark', {
-      Ordr: input.ordr,
-      Remarks: input.remarks
-    });
+    const rows = await executeWrite<{ AdditionalRemarksId: number }>(
+      `INSERT INTO AdditionalRemarks (Ordr, EntryDate, Remarks)
+       OUTPUT INSERTED.AdditionalRemarksId
+       VALUES (@ordr, CONVERT(varchar(10), GETDATE(), 120), @remarks)`,
+      { ordr: input.ordr, remarks: input.remarks }
+    );
     return rows[0]?.AdditionalRemarksId;
   }
 
   async update(id: number, remarks: string): Promise<void> {
-    await callProcedure('sp_EditRemark', { AdditionalRemarksId: id, Remarks: remarks });
+    await executeWrite('UPDATE AdditionalRemarks SET Remarks = @remarks WHERE AdditionalRemarksId = @id', { id, remarks });
   }
 
   async delete(id: number): Promise<void> {
-    await callProcedure('sp_DeleteRemark', { AdditionalRemarksId: id });
+    await executeWrite('DELETE FROM AdditionalRemarks WHERE AdditionalRemarksId = @id', { id });
   }
 }
 

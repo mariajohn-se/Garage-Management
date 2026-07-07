@@ -1,5 +1,6 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
 import { SalesOrder, OrderLineItem } from '../models/Sales';
+import { NotImplementedError } from '../utils/errors';
 
 /** VERIFIED against the live SalesOrdr01Sql view (76 columns, 22835 real rows). */
 
@@ -106,75 +107,54 @@ export class OrderRepository {
   }
 
   /**
-   * Placeholder procedure names - not confirmed against the real SP catalog. Follows the
-   * schema's own header/detail table pattern (SalesOrdr01 header + SalesOrdr02 line items,
-   * mirroring LocalPurchase01/02, Estimation01/02, etc.) rather than guessing at a single
-   * do-everything procedure. NOT executed against production in this build's verification.
+   * BLOCKED: SalesOrdr01/02 use a Ccode+yr partitioned Ordr numbering scheme plus tax/discount
+   * computation (Tda/Txa/Amount) that isn't documented anywhere - guessing it risks corrupting
+   * 22835 rows of real sales-order data and any downstream invoicing/ledger totals that depend
+   * on it. Needs the real numbering/computation rules from someone who knows this legacy app.
    */
-  async create(input: {
+  async create(_input: {
     custId: string;
     vehId: number | null;
     orderDate: string;
     custNote: string | null;
     items: OrderLineItem[];
   }): Promise<string> {
-    const rows = await callProcedure<{ Ordr: string }>('InsertSalesOrder', {
-      CustId: input.custId,
-      VehId: input.vehId,
-      Ordt: input.orderDate,
-      CustNote: input.custNote
-    });
-    const ordr = rows[0]?.Ordr;
-    for (const item of input.items) {
-      await callProcedure('InsertSalesOrderItem', {
-        Ordr: ordr,
-        ItemCode: item.itemCode,
-        Qty: item.qty,
-        Rate: item.rate,
-        Discount: item.discount ?? 0
-      });
-    }
-    return ordr;
+    throw new NotImplementedError(
+      'Creating sales orders requires the real order-numbering and tax/discount computation rules from the ' +
+        'legacy app - not supported yet.'
+    );
   }
 
   async update(
-    id: number,
-    changes: { custId?: string; vehId?: number | null; custNote?: string; items?: OrderLineItem[] }
+    _id: number,
+    _changes: { custId?: string; vehId?: number | null; custNote?: string; items?: OrderLineItem[] }
   ): Promise<void> {
-    await callProcedure('UpdateSalesOrder', {
-      ID: id,
-      CustId: changes.custId,
-      VehId: changes.vehId,
-      CustNote: changes.custNote
-    });
-    if (changes.items) {
-      await callProcedure('DeleteSalesOrderItems', { ID: id });
-      for (const item of changes.items) {
-        await callProcedure('InsertSalesOrderItem', {
-          ID: id,
-          ItemCode: item.itemCode,
-          Qty: item.qty,
-          Rate: item.rate,
-          Discount: item.discount ?? 0
-        });
-      }
-    }
+    throw new NotImplementedError('Editing sales orders is not supported yet - see create().');
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
-  async changeCustomer(id: number, newCustId: string, reason: string): Promise<void> {
-    await callProcedure('ChangeOrderCustomer', { ID: id, NewCustId: newCustId, Reason: reason });
+  /** BLOCKED: same reasoning - reassigning a paid/ordered job to a different customer needs real business rules. */
+  async changeCustomer(_id: number, _newCustId: string, _reason: string): Promise<void> {
+    throw new NotImplementedError('Changing a sales order\'s customer is not supported yet.');
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
+  /** salesOrdrStatusDtl (real base table, identity DtlId) is a plain status-history log - looks up Ordr by ID first. */
   async updateStatus(id: number, statusId: number): Promise<void> {
-    await callProcedure('InsertOrUpdateSalesOrdrStatusDtl', { ID: id, StatusID: statusId });
+    const rows = await queryView<{ Ordr: string }>('SELECT Ordr FROM SalesOrdr01 WHERE ID = @id', { id });
+    const ordr = rows[0]?.Ordr;
+    if (!ordr) return;
+    await executeWrite(
+      'INSERT INTO salesOrdrStatusDtl (Ordr, StatusDate, StatusId) VALUES (@ordr, GETDATE(), @statusId)',
+      { ordr, statusId }
+    );
   }
 
-  // Placeholder procedure name - BR-51 (cannot delete if a delivery note exists) is checked
-  // by the caller (OrderService) before this runs.
+  /**
+   * BR-51 (cannot delete if a delivery note exists) is checked by the caller (OrderService)
+   * before this runs. Deletion has no numbering/computation to guess at - plain header+detail cleanup.
+   */
   async delete(id: number): Promise<void> {
-    await callProcedure('DeleteSalesOrder', { ID: id });
+    await executeWrite('DELETE FROM SalesOrdr02 WHERE ID = @id', { id });
+    await executeWrite('DELETE FROM SalesOrdr01 WHERE ID = @id', { id });
   }
 }
 

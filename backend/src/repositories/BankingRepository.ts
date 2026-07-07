@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, callProcedure, executeWrite } from '../db/callProcedure';
 import {
   VoucherListItem,
   VoucherLine,
@@ -175,10 +175,9 @@ export class BankingRepository {
     }));
   }
 
-  // Placeholder procedure name - the real AcVerification table has no documented insert
-  // procedure in DB_CONNECTION_SPEC_v12.md; not confirmed against the real SP catalog.
+  /** AcVerification has no PK - a plain (UserID, Vsrl) marker row, no computation involved. */
   async markVerified(vsrl: string, userId: string): Promise<void> {
-    await callProcedure('spAcVerificationInsert', { Vsrl: vsrl, UserId: userId });
+    await executeWrite('INSERT INTO AcVerification (UserID, Vsrl) VALUES (@userId, @vsrl)', { userId, vsrl });
   }
 
   /** Real SP: date range across all ledger entries, optionally filtered to one account. */

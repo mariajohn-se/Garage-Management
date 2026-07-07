@@ -1,4 +1,4 @@
-import { queryView, callProcedure } from '../db/callProcedure';
+import { queryView, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { User, Role, UserLogEntry, UserListItem, MenuPermission } from '../models/User';
 
 /**
@@ -127,30 +127,33 @@ export class UserRepository {
       .filter((u) => !filters.status || (filters.status === 'active') === u.isActive);
   }
 
-  // Placeholder procedure name - see PHASE2 doc's own suggested name; not confirmed against
-  // the real SP catalog.
+  /** USERS.Sl (PK in practice, no constraint enforces it) has no identity backing it live - app-generated MAX+1. */
   async createUser(input: { username: string; passwordHash: string; isAdministrator: boolean }): Promise<number> {
-    const rows = await callProcedure<{ Sl: number }>('spCreateUser', {
-      UserName: input.username,
-      Pw: input.passwordHash,
-      Option: input.isAdministrator ? 1 : 0
+    return withNextNumericId('USERS', 'Sl', async (nextId, req) => {
+      await req
+        .input('Sl', nextId)
+        .input('User', input.username)
+        .input('Pw', input.passwordHash)
+        .input('Option', input.isAdministrator ? 1 : 0).query(`
+          INSERT INTO USERS (Sl, [User], Pw, [Option])
+          VALUES (@Sl, @User, @Pw, @Option)
+        `);
+      return nextId;
     });
-    return rows[0]?.Sl;
   }
 
-  // Placeholder procedure name - see file header note.
   async updateUser(userId: number, changes: { isAdministrator?: boolean; isActive?: boolean }): Promise<void> {
-    if (changes.isAdministrator !== undefined) {
-      await callProcedure('spUpdateUserRole', { UserId: userId, Option: changes.isAdministrator ? 1 : 0 });
-    }
-    if (changes.isActive !== undefined) {
-      await callProcedure('spUserSetDisableState', { UserId: userId, Disable: changes.isActive ? 0 : 1 });
-    }
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { userId };
+    if (changes.isAdministrator !== undefined) { sets.push('[Option] = @Option'); params.Option = changes.isAdministrator ? 1 : 0; }
+    if (changes.isActive !== undefined) { sets.push('Disable = @Disable'); params.Disable = changes.isActive ? 0 : 1; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE USERS SET ${sets.join(', ')} WHERE Sl = @userId`, params);
   }
 
-  // Placeholder procedure name - see file header note. Deletes a real USERS row - destructive.
+  /** Deletes a real USERS row - destructive. */
   async deleteUser(userId: number): Promise<void> {
-    await callProcedure('spDeleteUser', { UserId: userId });
+    await executeWrite('DELETE FROM USERS WHERE Sl = @userId', { userId });
   }
 
   /** Joins UserRights against menulist for human-readable feature names (never raw IDs). */
@@ -166,21 +169,20 @@ export class UserRepository {
     return rows.map((r) => ({ menuId: r.MnuID, menuName: r.MnuName, granted: !!r.Granted }));
   }
 
-  // Placeholder procedure names - no SP for UserRights writes is documented anywhere.
+  /** UserRights has no PK constraint but is logically (User, mnuId) - plain insert/delete. */
   async grantMenuPermission(username: string, menuId: string): Promise<void> {
-    await callProcedure('spCreateUserRole', { UserName: username, MnuId: menuId });
+    await executeWrite('INSERT INTO UserRights ([User], mnuId) VALUES (@username, @menuId)', { username, menuId });
   }
 
   async revokeMenuPermission(username: string, menuId: string): Promise<void> {
-    await callProcedure('spDeleteUserRole', { UserName: username, MnuId: menuId });
+    await executeWrite('DELETE FROM UserRights WHERE [User] = @username AND mnuId = @menuId', { username, menuId });
   }
 
-  // Placeholder procedure name - see file header note.
   async updatePassword(userId: number, passwordHash: string): Promise<void> {
-    await callProcedure('spUserSetPassword', { UserId: userId, NewPassword: passwordHash });
+    await executeWrite('UPDATE USERS SET Pw = @passwordHash WHERE Sl = @userId', { userId, passwordHash });
   }
 
-  // Placeholder procedure name - see file header note.
+  /** UserLog.SLNo is a real identity column - safe to let SQL Server assign it. */
   async writeUserLog(entry: {
     userId: number;
     userName: string;
@@ -189,14 +191,18 @@ export class UserRepository {
     ipAddress?: string;
     machineName?: string;
   }): Promise<void> {
-    await callProcedure('spUserLogInsert', {
-      UserId: entry.userId,
-      UserName: entry.userName,
-      ActionName: entry.actionName,
-      Remarks: entry.remarks ?? null,
-      IpAdresses: entry.ipAddress ?? null,
-      MachineName: entry.machineName ?? null
-    });
+    await executeWrite(
+      `INSERT INTO UserLog (UserId, UserName, MachineName, IpAdresses, ActionDate, ActionName, Remarks)
+       VALUES (@userId, @userName, @machineName, @ipAddress, GETDATE(), @actionName, @remarks)`,
+      {
+        userId: entry.userId,
+        userName: entry.userName,
+        actionName: entry.actionName,
+        remarks: entry.remarks ?? null,
+        ipAddress: entry.ipAddress ?? null,
+        machineName: entry.machineName ?? null
+      }
+    );
   }
 
   async getUserLog(filters: {

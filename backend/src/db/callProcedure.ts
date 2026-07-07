@@ -4,8 +4,11 @@ import { logger } from '../utils/logger';
 
 /**
  * Execute a SQL Server stored procedure with named parameters.
- * This is the ONLY sanctioned way to perform writes per STANDARDS.md (DB-Preserve mode) -
- * never build raw INSERT/UPDATE/DELETE strings.
+ * STANDARDS.md (DB-Preserve mode) originally required all writes to go through a stored
+ * procedure. Live-DB inspection (2026-07-07) found the real catalog has 111 procedures, all
+ * read/report-only - none of the ~29 create/update/delete procedure names referenced across
+ * this codebase's repositories actually exist. Writes now go through executeWrite() below
+ * instead; callProcedure() remains for the real report procedures.
  */
 export async function callProcedure<T = any>(
   procName: string,
@@ -77,4 +80,62 @@ export async function queryView<T = any>(sql: string, inputParams: Record<string
   });
   const result = await req.query(sql);
   return result.recordset as unknown as T[];
+}
+
+/**
+ * Parameterized INSERT/UPDATE/DELETE against a base table. See the note on callProcedure()
+ * above - no stored procedure exists in the live catalog for any entity write, so repositories
+ * write directly to base tables through this helper instead. Always bind values via
+ * inputParams/@paramName, never string-interpolate user-controlled values into `sql`.
+ * Returns the recordset from an OUTPUT clause when the caller uses one, else [].
+ */
+export async function executeWrite<T = any>(sql: string, inputParams: Record<string, unknown> = {}): Promise<T[]> {
+  const pool = await getPool();
+  const req = pool.request();
+  Object.entries(inputParams).forEach(([key, value]) => {
+    if (typeof value === 'number' && Number.isInteger(value)) {
+      req.input(key, mssql.Int, value);
+    } else {
+      req.input(key, value as any);
+    }
+  });
+  const result = await req.query(sql);
+  return (result.recordset as unknown as T[]) ?? [];
+}
+
+/**
+ * A handful of master-data tables (Customer.CustId, Supplier.SuppID, CustomerVehicle.VehID,
+ * salesOrdrStatusHead.StatusID, USERS.Sl) use an app-generated MAX+1 key instead of an identity
+ * column - there is no sequence object backing them. Runs the read-max-then-insert inside a
+ * single serializable transaction with an UPDLOCK/HOLDLOCK hint on the max-read so two
+ * concurrent creates can't compute the same next value; the second waits for the first's
+ * transaction to commit rather than racing it.
+ *
+ * TRY_CAST doesn't exist on SQL Server 2008 (this DB's real version, verified live) - it was
+ * added in 2012. The NOT LIKE digit-check works on both nvarchar and int columns since SQL
+ * Server implicitly converts int to varchar for the LIKE comparison.
+ */
+export async function withNextNumericId<T>(
+  table: string,
+  column: string,
+  insert: (nextId: number, transactionRequest: mssql.Request) => Promise<T>
+): Promise<T> {
+  const pool = await getPool();
+  const transaction = new mssql.Transaction(pool);
+  await transaction.begin(mssql.ISOLATION_LEVEL.SERIALIZABLE);
+  try {
+    const maxReq = new mssql.Request(transaction);
+    const maxResult = await maxReq.query(
+      `SELECT ISNULL(MAX(CASE WHEN ${column} NOT LIKE '%[^0-9]%' THEN CAST(${column} AS INT) END), 0) AS maxId
+       FROM ${table} WITH (UPDLOCK, HOLDLOCK)`
+    );
+    const nextId = (maxResult.recordset[0]?.maxId ?? 0) + 1;
+    const result = await insert(nextId, new mssql.Request(transaction));
+    await transaction.commit();
+    return result;
+  } catch (err) {
+    await transaction.rollback().catch(() => undefined);
+    logger.error('withNextNumericId transaction failed', { table, column, error: (err as Error).message });
+    throw err;
+  }
 }

@@ -38,3 +38,14 @@ export class LockedError extends AppError {
     super(message, 423, code);
   }
 }
+
+/**
+ * For write operations intentionally left unimplemented because the live DB has no backing
+ * stored procedure and the real numbering/computation/posting business rules aren't known
+ * (see docs/README known gaps) - surfaces a clear message instead of a raw SQL error.
+ */
+export class NotImplementedError extends AppError {
+  constructor(message: string, code = 'NOT_IMPLEMENTED') {
+    super(message, 501, code);
+  }
+}

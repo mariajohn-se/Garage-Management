@@ -1,5 +1,6 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, callProcedure, executeWrite } from '../db/callProcedure';
 import { AccountHead, TrialBalanceRow, TrialBalanceSummary, BulkJournalEntry, BulkPdcEntry } from '../models/Ledger';
+import { NotImplementedError } from '../utils/errors';
 
 /**
  * VERIFIED against the live database: ACHEADSQL (8074 rows, the resolved chart-of-accounts
@@ -91,14 +92,26 @@ export class LedgerRepository {
     return rows.map(toAccountHead);
   }
 
-  // Placeholder procedure names - no confirmed insert/update/delete SP for ACHEAD in the real catalog.
-  async createAccountHead(data: { description: string; headUnder?: string }): Promise<string> {
-    const rows = await callProcedure<{ CODES: string }>('spCreateAccountHead', data);
-    return rows[0]?.CODES ?? '';
+  /**
+   * ACHEAD.CODES (PK) is a human-chosen mnemonic string (e.g. 'SUPPLIER', 'PANDL'), not a
+   * sequence - verified live, every existing code is a hand-picked short name reflecting its
+   * place in the chart-of-accounts hierarchy (GroupTree). Auto-generating one would produce a
+   * meaningless code and could misplace the new account in that hierarchy, so this is left
+   * blocked pending a real code from whoever maintains the chart of accounts, rather than guessed.
+   */
+  async createAccountHead(_data: { description: string; headUnder?: string }): Promise<string> {
+    throw new NotImplementedError(
+      'Creating a new account head requires a chart-of-accounts code chosen by someone who understands the ' +
+        'hierarchy (ACHEAD.CODES is a mnemonic string, not an auto-generated ID) - not supported yet.'
+    );
   }
 
   async updateAccountHead(codes: string, changes: { description?: string }): Promise<void> {
-    await callProcedure('spUpdateAccountHead', { CODES: codes, ...changes });
+    if (changes.description === undefined) return;
+    await executeWrite('UPDATE ACHEAD SET DESCRIPTION = @description WHERE CODES = @codes', {
+      codes,
+      description: changes.description
+    });
   }
 
   /** Real, undocumented SP - found via INFORMATION_SCHEMA.ROUTINES, verified live (1881 rows). */

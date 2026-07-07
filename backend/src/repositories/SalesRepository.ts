@@ -1,5 +1,6 @@
 import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
 import { DeliveryNote, SalesInvoice, Proforma } from '../models/Sales';
+import { NotImplementedError } from '../utils/errors';
 
 /**
  * VERIFIED against the live database: Delivery01Sql (42711 rows), Sales01Sql (23021 rows),
@@ -167,20 +168,22 @@ export class SalesRepository {
     return rows.length ? toDelivery(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog. Follows the
-  // header/detail table pattern (Delivery01 header + Delivery02 line items) that already
-  // exists in the schema.
-  async createDeliveryNote(input: { ordr: string; deliveredBy: string; remarks: string | null }): Promise<string> {
-    const rows = await callProcedure<{ DONo: string }>('InsertOrUpdateDelivery01', {
-      Ordr: input.ordr,
-      DeliveredBy: input.deliveredBy,
-      Remarks: input.remarks
-    });
-    return rows[0]?.DONo;
+  /**
+   * BLOCKED: Delivery01/02 use the same Ccode+yr partitioned DONo numbering plus a stock-update
+   * flag (UpdtStk) whose trigger/logic isn't visible anywhere in this schema - a delivery note
+   * likely needs to decrement Items.Stock atomically, and guessing that risks silently
+   * corrupting real inventory counts. Needs the real numbering/stock-update rules from someone
+   * who knows this legacy app.
+   */
+  async createDeliveryNote(_input: { ordr: string; deliveredBy: string; remarks: string | null }): Promise<string> {
+    throw new NotImplementedError(
+      'Creating delivery notes requires the real numbering and stock-update rules from the legacy app - not ' +
+        'supported yet.'
+    );
   }
 
-  async updateDeliveryNote(id: number, changes: { deliveredBy?: string; remarks?: string }): Promise<void> {
-    await callProcedure('InsertOrUpdateDelivery01', { ID: id, ...changes });
+  async updateDeliveryNote(_id: number, _changes: { deliveredBy?: string; remarks?: string }): Promise<void> {
+    throw new NotImplementedError('Editing delivery notes is not supported yet - see createDeliveryNote().');
   }
 
   /** Real stored procedure (not in DB_CONNECTION_SPEC_v12.md's catalog, but confirmed to

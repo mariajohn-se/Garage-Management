@@ -1,4 +1,5 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, callProcedure, executeWrite } from '../db/callProcedure';
+import { NotImplementedError } from '../utils/errors';
 import {
   LocalPurchaseOrder,
   ForeignPurchaseOrder,
@@ -222,57 +223,35 @@ export class PurchaseRepository {
   }
 
   /**
-   * Placeholder procedure names - not confirmed against the real SP catalog. Follows the
-   * schema's own header/detail table pattern (LocalPurchase01 header + LocalPurchase02 line
-   * items, matching the real table split already in the schema). NOT executed against
-   * production in this build's verification - this is 20769 rows of real purchase data.
+   * BLOCKED: LocalPurchase01/02 use a Ccode+yr+CorQ partitioned numbering scheme (not a plain
+   * identity) plus tax/discount computation (Tda/Txa/Amount) whose formula isn't documented
+   * anywhere - guessing it risks silently corrupting 20769 rows of real purchase-accounting
+   * data. Needs the real numbering/computation rules from someone who knows this legacy app.
    */
-  async createLocalPurchase(input: {
+  async createLocalPurchase(_input: {
     suppId: string;
     invoiceDate: string;
     currency: string | null;
     remarks: string | null;
     items: PurchaseLineItem[];
   }): Promise<number> {
-    const rows = await callProcedure<{ ID: number }>('spCreateLocalPurchaseOrder', {
-      SuppId: input.suppId,
-      InvDt: input.invoiceDate,
-      Currency: input.currency,
-      Remarks: input.remarks
-    });
-    const id = rows[0]?.ID;
-    for (const item of input.items) {
-      await callProcedure('InsertLocalPurchaseItem', {
-        ID: id,
-        ItemCode: item.itemCode,
-        Qty: item.qty,
-        Rate: item.rate
-      });
-    }
-    return id;
+    throw new NotImplementedError(
+      'Creating local purchase orders requires the real numbering and tax/discount computation rules from ' +
+        'the legacy app - not supported yet.'
+    );
   }
 
   async updateLocalPurchase(
-    id: number,
-    changes: { suppId?: string; remarks?: string; items?: PurchaseLineItem[] }
+    _id: number,
+    _changes: { suppId?: string; remarks?: string; items?: PurchaseLineItem[] }
   ): Promise<void> {
-    await callProcedure('spUpdateLocalPurchaseOrder', { ID: id, SuppId: changes.suppId, Remarks: changes.remarks });
-    if (changes.items) {
-      await callProcedure('DeleteLocalPurchaseItems', { ID: id });
-      for (const item of changes.items) {
-        await callProcedure('InsertLocalPurchaseItem', {
-          ID: id,
-          ItemCode: item.itemCode,
-          Qty: item.qty,
-          Rate: item.rate
-        });
-      }
-    }
+    throw new NotImplementedError('Editing local purchase orders is not supported yet - see createLocalPurchase.');
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog.
+  /** Deletion has no numbering/computation to guess at - plain cleanup of header + detail rows. */
   async deleteLocalPurchase(id: number): Promise<void> {
-    await callProcedure('spDeleteLocalPurchaseOrder', { ID: id });
+    await executeWrite('DELETE FROM LocalPurchase02 WHERE ID = @id', { id });
+    await executeWrite('DELETE FROM LocalPurchase01 WHERE ID = @id', { id });
   }
 
   async listForeignPurchases(filters: { supplierName?: string; page: number; limit: number }): Promise<{
@@ -309,49 +288,25 @@ export class PurchaseRepository {
     return rows.length ? toForeignPurchase(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog. NOT executed
-  // against production - this is 7434 rows of real foreign purchase order data.
-  async createForeignPurchase(input: {
+  /** BLOCKED: same Ccode+yr+CorQ numbering/computation gap as createLocalPurchase, above. */
+  async createForeignPurchase(_input: {
     suppId: string;
     orderDate: string;
     currency: string | null;
     remarks: string | null;
     items: PurchaseLineItem[];
   }): Promise<number> {
-    const rows = await callProcedure<{ ID: number }>('spCreateForeignPurchaseOrder', {
-      SuppId: input.suppId,
-      POrdt: input.orderDate,
-      Currency: input.currency,
-      Remarks: input.remarks
-    });
-    const id = rows[0]?.ID;
-    for (const item of input.items) {
-      await callProcedure('InsertForeignPurchaseItem', {
-        ID: id,
-        ItemCode: item.itemCode,
-        Qty: item.qty,
-        Rate: item.rate
-      });
-    }
-    return id;
+    throw new NotImplementedError(
+      'Creating foreign purchase orders requires the real numbering and tax/discount computation rules from ' +
+        'the legacy app - not supported yet.'
+    );
   }
 
   async updateForeignPurchase(
-    id: number,
-    changes: { suppId?: string; remarks?: string; items?: PurchaseLineItem[] }
+    _id: number,
+    _changes: { suppId?: string; remarks?: string; items?: PurchaseLineItem[] }
   ): Promise<void> {
-    await callProcedure('spUpdateForeignPurchaseOrder', { ID: id, SuppId: changes.suppId, Remarks: changes.remarks });
-    if (changes.items) {
-      await callProcedure('DeleteForeignPurchaseItems', { ID: id });
-      for (const item of changes.items) {
-        await callProcedure('InsertForeignPurchaseItem', {
-          ID: id,
-          ItemCode: item.itemCode,
-          Qty: item.qty,
-          Rate: item.rate
-        });
-      }
-    }
+    throw new NotImplementedError('Editing foreign purchase orders is not supported yet - see createForeignPurchase.');
   }
 
   async listDeliveryOrders(filters: { supplierName?: string; page: number; limit: number }): Promise<{
@@ -460,17 +415,18 @@ export class PurchaseRepository {
     return { items: rows.map(toProdRequest), total: totalRows[0]?.cnt ?? 0 };
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog.
-  async createProdRequest(input: { supplierId: string; remarks: string | null }): Promise<number> {
-    const rows = await callProcedure<{ ID: number }>('spCreateProdRequest', {
-      SuppId: input.supplierId,
-      Remarks: input.remarks
-    });
-    return rows[0]?.ID;
+  /** BLOCKED: ProdRequest01.ID uses the same undocumented Ccode+yr partitioned numbering scheme. */
+  async createProdRequest(_input: { supplierId: string; remarks: string | null }): Promise<number> {
+    throw new NotImplementedError(
+      'Creating a production/purchase request requires the real numbering rules from the legacy app - not ' +
+        'supported yet.'
+    );
   }
 
+  /** Deletion has no numbering to guess at - plain cleanup of header + detail rows. */
   async deleteProdRequest(id: number): Promise<void> {
-    await callProcedure('spDeleteProdRequest', { ID: id });
+    await executeWrite('DELETE FROM ProdRequest02 WHERE ID = @id', { id });
+    await executeWrite('DELETE FROM ProdRequest01 WHERE ID = @id', { id });
   }
 
   /** No resolved view exists for Preturn01 - reads the base table directly per STANDARDS.md. */
@@ -507,17 +463,19 @@ export class PurchaseRepository {
     return { items: rows.map(toVehicleLink), total: totalRows[0]?.cnt ?? 0 };
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog.
+  /** PurchaseVehicleLink.ID is a real identity column - safe to let SQL Server assign it. */
   async createVehicleLink(input: { pInvNo: string; vehNo: string }): Promise<number> {
-    const rows = await callProcedure<{ ID: number }>('spCreatePurchaseVehicleLink', {
-      PInvNo: input.pInvNo,
-      VehNo: input.vehNo
-    });
+    const rows = await executeWrite<{ ID: number }>(
+      `INSERT INTO PurchaseVehicleLink (PInvNo, VehNo)
+       OUTPUT INSERTED.ID
+       VALUES (@pInvNo, @vehNo)`,
+      { pInvNo: input.pInvNo, vehNo: input.vehNo }
+    );
     return rows[0]?.ID;
   }
 
   async deleteVehicleLink(id: number): Promise<void> {
-    await callProcedure('spDeletePurchaseVehicleLink', { ID: id });
+    await executeWrite('DELETE FROM PurchaseVehicleLink WHERE ID = @id', { id });
   }
 }
 

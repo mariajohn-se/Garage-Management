@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
 import { Item } from '../models/Stock';
 
 /** VERIFIED against the live ItemsSql view (49564 real rows, "CatDescr" for category). */
@@ -103,9 +103,14 @@ export class ItemRepository {
     return rows.length ? toItem(rows[0]) : null;
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
+  /** ItemsSql resolves to the real base table `Items` (PK ItemCode) - verified via its view definition. */
   async update(itemCode: string, changes: { description?: string; reorderLevel?: number }): Promise<void> {
-    await callProcedure('spUpdateItem', { ItemCode: itemCode, ...changes });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { itemCode };
+    if (changes.description !== undefined) { sets.push('Description = @Description'); params.Description = changes.description; }
+    if (changes.reorderLevel !== undefined) { sets.push('ReOrder = @ReOrder'); params.ReOrder = changes.reorderLevel; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE Items SET ${sets.join(', ')} WHERE ItemCode = @itemCode`, params);
   }
 }
 
