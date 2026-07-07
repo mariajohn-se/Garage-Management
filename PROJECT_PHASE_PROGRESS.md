@@ -1,0 +1,310 @@
+# PROJECT_PHASE_PROGRESS.md
+## Build Progress Log
+
+---
+
+## SPEC FILE GENERATION SUMMARY
+
+| Item                | Value                        |
+|---------------------|------------------------------|
+| Generated at        | 2026-07-02 10:56:11 UTC |
+| PRD file            | PRD_v1.0.0.md |
+| PRD hash            | 30974e2c05a9 |
+| Files generated     | 48 |
+| Build phases        | 13 |
+| Input tokens used   | 1,71,41,724 |
+| Output tokens used  | 2,46,552 |
+| Total tokens used   | 1,73,88,276 |
+
+> Tokens above are for spec file generation only.
+> Each build phase will use additional tokens when you run them in your LLM.
+
+---
+
+## CURRENT BUILD STATUS
+
+| Phase | Description | Status      | Score | Tokens Used |
+|-------|-------------|-------------|-------|-------------|
+|   1   | Foundation & Authentication | HELD FOR REVIEW (below 9.5 gate) | 8.0/10 (16/20) | n/a - not tracked this session |
+|   2   | User & Role Management | HELD FOR REVIEW (below 9.5 gate) | 8.0/10 (16/20) | n/a - not tracked this session |
+|   3   | Customers, Suppliers, Contacts, Vehicles | HELD FOR REVIEW (below 9.5 gate) | 6.2/10 (12.4/20) | n/a - not tracked this session |
+|   4   | Document & Attachment Management | HELD FOR REVIEW (below 9.5 gate) | 6.45/10 (12.9/20) | n/a - not tracked this session |
+|   5   | Jobs, Work Orders & Estimation | HELD FOR REVIEW (below 9.5 gate) | 5.75/10 (11.5/20) | n/a - not tracked this session |
+|   6   | Order & Sales Management | HELD FOR REVIEW (completion pass done, below 9.5 gate) | 7.1/10 (14.2/20) | n/a - not tracked this session |
+|   7   | Purchase & Procurement Management | HELD FOR REVIEW (completion pass done, below 9.5 gate) | 6.8/10 (13.55/20) | n/a - not tracked this session |
+|   8   | Stock & Inventory Management | HELD FOR REVIEW (first pass, below 9.5 gate) | 5.9/10 (11.8/20) | n/a - not tracked this session |
+|   9   | Banking & Reconciliation | HELD FOR REVIEW (completion pass done, below 9.5 gate) | 6.9/10 (13.8/20) | n/a - not tracked this session |
+|   10   | Ledger & Account Management, Vouchers &  | HELD FOR REVIEW (first pass, below 9.5 gate) | 5.6/10 (11.2/20) | n/a - not tracked this session |
+|   11   | Receipts & Payments Processing | HELD FOR REVIEW (first pass, below 9.5 gate) | 5.0/10 (10.0/20) | n/a - not tracked this session |
+|   12   | Reporting, Audit Logging & Analytics | HELD FOR REVIEW (first pass, below 9.5 gate) | 4.6/10 (9.2/20) | n/a - not tracked this session |
+|   13   | Security & Final Polish | HELD FOR REVIEW (below 9.5 gate) | 6.8/10 (13.6/20) | n/a - not tracked this session |
+
+> LLM must update this table after each phase with score and token count.
+
+**All 13 phases of the build plan have now had a first (or, for Phases 6/7/9, a completion)
+pass. Average score across all 13 phases: 6.39/10 (166.15/260).** No phase reached the plan's
+9.5/10 auto-continue gate, and none should be read as "done" - every phase is HELD FOR REVIEW
+with its real, verified gaps documented below and in `README.md`'s "Known gaps / judgment
+calls" sections. This reflects the honest state of a DB-Preserve build against a legacy schema
+that the generated spec frequently assumed was richer than it actually is - not a rubber-stamped
+completion. See each phase's "Notes" for what's worth prioritizing next.
+
+---
+
+## PHASE DETAILS
+
+### Phase 1 — Foundation & Authentication
+- Modules: project-scaffolding, db-connection, env-config, callProcedure, app-shell, health-check-endpoint, auth, jwt-session, auth-middleware, user-session-store, password-hashing, rbac-foundation, userlog-capture, frontend-basics, initial-deployment
+- Status: IN PROGRESS - deliberately held below the plan's 9.5/10 auto-continue gate for human review (see Notes). Built and runtime-verified against the real live DB; not advancing to Phase 2 until the open items below are resolved with input from someone who knows the legacy schema.
+- Score: 8.0/10 (16/20 on the Phase 1 scorecard) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Full project scaffold (backend Express+TS, frontend React 19+Vite+TS, docker-compose, nginx, GitHub Actions CI) per PROJECT_OVERVIEW.md structure
+  - DB connection + callProcedure()/queryView() helpers; verified live against the real SQL Server at DB_HOST (SQL Server 2008 requires DB_ENCRYPT=false - modern TLS defaults break the handshake against it)
+  - Health check endpoint - runtime-verified returning real DB status
+  - Auth: JWT (access+refresh) via passport-jwt, bcrypt (cost 12) via passport-local, in-memory lockout (5 attempts/15 min), RBAC middleware - all runtime-tested end-to-end with curl against the live DB (login failure/lockout, session, RBAC 403, protected routes)
+  - All API_SPEC_v12.md section 1.1/2.1 auth endpoints implemented and routed
+  - Frontend: Sign In, Change Password, ODBC Sign In, Forgot Password, User Log Report, Health, and an authenticated Home landing page - all real API-wired pages (no title-only stubs), with loading/error/empty states and most FRONTEND_SPEC_v12.md testids
+  - Backend/frontend both typecheck clean, lint clean, and build to production bundles; 12 unit tests passing (password policy, hashing, lockout)
+  - scripts/inspect-schema.js added and used to pull the REAL USERS/UserRights/UserLog column names from the live DB, replacing initial guesses
+- Failed items / open gaps (why this isn't a 9.5+):
+  - No Email column exists on USERS or EmployeeDet in the real DB - password-reset-by-email (BR-04/09) cannot actually deliver email; it logs the reset link instead. Needs a real email source identified by the business.
+  - No named-role column exists - RBAC roles are approximated from USERS.Option (undocumented meaning, only 0/1 in production data). This is a provisional heuristic, not a confirmed business rule; Supervisor is unreachable from current data. Needs confirmation from someone who knows the legacy app, and should be revisited in Phase 2.
+  - Three write stored procedures (spUserSetPassword, spUserSetDisableState, spUserLogInsert) are placeholder names - DB_CONNECTION_SPEC_v12.md confirms undocumented procedures exist for this but doesn't name them. These write paths will fail at runtime until the real names are found.
+  - API_SPEC_v12.md never defined an endpoint for FRONTEND_SPEC_v12.md's ODBC Sign In page - filled in a reasonable /auth/odbc-test-connection + /auth/odbc-login, but this is a judgment call, not a confirmed spec.
+  - SSO/MFA fields shown in FRONTEND_SPEC_v12.md's Sign In page were left out since no backend supports them (avoided building non-functional UI).
+  - User Log Report's Excel/PDF export buttons show an honest "implemented in Phase 12" message rather than a fake export; only CSV export is real today.
+  - UI was verified via typecheck/build/dev-server-proxy-to-live-backend, NOT visually confirmed in an actual browser - no browser automation tooling (Playwright/chromium-cli) was available in this environment.
+  - Docker Desktop's daemon was not running in this environment, so docker-compose/Dockerfiles are written per spec but not build-verified.
+- Notes: Per explicit agreement with the user, phases are being built and reviewed one at a time rather than auto-continuing through all 13 regardless of score. Recommend resolving the open gaps above (ideally with someone who has direct knowledge of the legacy app/DB) before starting Phase 2, since Phase 2 (User & Role Management) directly depends on the real meaning of USERS.Option and UserRights.mnuId.
+
+### Phase 2 — User & Role Management
+- Modules: users, user-crud, roles, user-rights-management, user-table, userlogreport, user-audit-trail, legacy-user-management, bulk-user-import-export, password-change, admin-change-password, bypass-forgot-password, userlist-report, page-user-info, emp-attendance, employee-management, employee-list, notification-system, userlog-audit-report, password-reset-request, unlock-account
+- Status: IN PROGRESS - held below the 9.5/10 gate for human review, same as Phase 1. Backend read paths and RBAC runtime-verified live against the real DB; write paths (create/update/delete/roles/reset-password/import) were NOT executed against production data - see Notes.
+- Score: 8.0/10 (16/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Users CRUD (list/create/update/delete/activate/bulk-activate/roles/reset-password), per-user menu-permission read+write (menulist joined against UserRights for human-readable names), Employees list (EmployeeSql), Legacy Users list (UserTable, as-is), Action Log endpoint, CSV bulk import/export for users
+  - Frontend: User List, User Form (create/edit), Role & Permissions (per-user editor), Employee List, Legacy User Management, Page/User Info, Admin Change Password, User Action Log - all real, API-wired, no title-only stubs
+  - Fixed a real correctness bug found during this phase: Phase 1's unlock-account endpoint was calling the same DB write as deactivate/reactivate, so "unlock" could have silently reactivated an intentionally-disabled account. Separated the in-memory lockout clear from the persisted Disable flag.
+  - Verified live against the real DB (read-only): user list (31 real rows), employees (0 rows - see Failed items), legacy users (0 rows), per-user menu permissions (real join against menulist), CSV export, RBAC 403 on every write endpoint for a Supervisor-only token
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing unit tests still passing
+- Failed items / open gaps (why this isn't a 9.5+):
+  - USERS.Option cannot support a 3-tier role system and UserRights is per-user not per-role - "User Rights Management" was redesigned from the spec's role x permission matrix into a per-user permission editor, since the matrix concept doesn't exist in the real data. Functionally solid, but not what the spec literally describes.
+  - UserTable (the "Legacy User Management" entity) is a 2-column, 0-row device-registration table, not a legacy-user-account entity - the "migrate to new user" workflow the spec describes was not built since there's nothing meaningful to migrate. Page shows real data as-is instead.
+  - EmployeeSql returns 0 rows in production due to a pre-existing legacy view/data issue (INNER JOINs to Section/DepartmentSql apparently match nothing) - Employee List is correctly wired but will show "no employees found" until that's fixed upstream (cannot be fixed here without altering a view, forbidden in DB-Preserve mode).
+  - Employee Attendance (emp-attendance, spec route /hr/attendance/list) was not built this session - deprioritized given the volume of the rest of Phase 2.
+  - Notification System has no spec to implement - FRONTEND_SPEC_v12.md contains no notification-center/bell-icon/toast UI anywhere; confirmed by full-document search, not skipped.
+  - Bulk import/export UI was undocumented in the spec (just "opens file dialog/modal") - implemented a real plain-CSV format as a judgment call.
+  - Write endpoints (create/update/delete/roles/reset-password/import) still call placeholder stored procedure names (spCreateUser, spUpdateUserRole, spDeleteUser, spCreateUserRole/spDeleteUserRole) that are almost certainly not the real ones - and unlike Phase 1's read-only verification, these were deliberately NOT executed against the live database at all (not even to observe the expected failure) because this is real production data with real user accounts, and mutating it without explicit authorization isn't an acceptable way to "test."
+  - Two conflicting Employee List specs exist in FRONTEND_SPEC_v12.md (/admin/employees vs /hr/employees with different testids/pagination/detail level) - used the one matching this phase doc's requested route.
+- Notes: Consistent with Phase 1's cadence, holding here for review rather than auto-continuing. The role/permission model and the real meaning of UserTable are the two items most worth getting a real answer on before Phase 3, since several later phases (esp. reporting/audit) may assume the same role system.
+
+### Phase 3 — Customers, Suppliers, Contacts, Vehicles
+- Modules: customer-management, customers, customers-crud, customer-vehicle-entry, customer-vehicle-help, customer-help, customer-duplicate-merge, custlist-report-screen, supplier-management, suppliers, suppliers-crud, supplier-help, supplier-duplicate-merge, supplist-report-screen, contacts, contact-entry, contact-list, contact-duplicate-check, contact-merge-duplicates, bulk-customer-supplier-import-export, tagging-segmentation, contact-search, customer-supplier-list-report, customer-agewise-report, supplier-agewise-report, additional-remarks-reports, vehicles, vehicle-duplicate-merge, vehicle-help
+- Status: IN PROGRESS - held below the 9.5/10 gate for human review, same as Phase 1-2. Core CRUD/list/help/agewise wiring runtime-verified live (read-only) against real production data (6565 customers, 430 suppliers, 7442 vehicles). Write paths NOT executed against production - see Failed items.
+- Score: 6.2/10 (12.4/20) - self-scored honestly; lower than Phase 1-2 because more scope was deliberately cut given time/risk, on top of larger real data-model surprises
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Customer/Supplier/Vehicle repositories, services (BR-21 duplicate check, phone-or-email-required validation), controllers, routes - list (paginated), get, create, update, delete, help/quick-search, CSV export, customer agewise report
+  - Frontend: Customer List/Form/Help, Supplier List/Form/Help, Vehicle List/Form, Customer Agewise report - all real, API-wired, paginated against real multi-thousand-row data, no title-only stubs
+  - Found and fixed a real, significant bug while building this phase: the live DB is SQL Server 2008 R2, which predates OFFSET/FETCH (SQL Server 2012+) - every paginated list threw "Invalid usage of the option NEXT in the FETCH statement" until rewritten with ROW_NUMBER() windowing. This would have broken pagination in every future phase if not caught now.
+  - Found and fixed a "raw ID instead of name" bug before it shipped: initially selected the raw `area`/`Emirate` code columns instead of the view's own resolved `Areaname`/`Emirates` columns.
+  - Verified live (read-only): customer/supplier/vehicle pagination (page 1 vs 2 differ correctly), resolved area/emirate names, customer help search, CSV export, agewise endpoint fails cleanly (see Failed items) without crashing the server
+- Failed items / open gaps (why this is lower than Phase 1-2's ~8.0):
+  - `ccode` on CustomerSql/SupplierSql is a constant company code, not a per-row key (CustId/SuppID are the real identifiers) - IMPLEMENTATION_PHASE3_v12.md's own repository examples imply otherwise.
+  - No working vehicle<->customer link exists anywhere in the schema (CustomerVehicle.Ccode is NULL on all 7442 rows) - built Vehicles as a standalone registry instead of nested under customers, and BR-25 cannot be implemented or verified.
+  - No standalone Contact entity exists - FRONTEND_SPEC_v12.md's separate Contacts list/entry/merge screens were not built; contact fields live on the Customer/Supplier forms instead.
+  - Supplier.Active's polarity (-1 vs 1) could not be confirmed from data - exposed as a raw flag; status is not shown/filterable for suppliers.
+  - AgewiseSummary (the real documented SP) throws a live collation-conflict SQL error for every parameter combination tried - a pre-existing bug in the procedure itself, not fixable here. The report page/endpoint are wired correctly and surface this honestly.
+  - Merge/duplicate-resolution UIs, tagging/segmentation, bulk import for customers/suppliers, and the Additional Remarks Report were NOT built this session - deliberately deprioritized given the volume of this phase and the risk of write operations against thousands of real records without confirmed stored procedure names.
+  - No Customer/Supplier/Vehicle write endpoint was executed against production (same reasoning as Phase 2) - verified by typecheck/build/code review only.
+- Notes: This phase surfaced more/larger real data-model surprises than Phase 1-2 (broken vehicle-customer link, non-unique ccode, ambiguous Supplier.Active, a genuine SQL Server 2008 compatibility bug). Recommend getting real answers on the vehicle-customer relationship and Supplier.Active polarity before Phase 5 (Jobs/Work Orders), which likely depends on both.
+
+### Phase 4 — Document & Attachment Management
+- Modules: attachments, attachmentmaster, document01, dochead, documents, document-entry, document-help, document-menu, document-head-management, dms-module, additional-remarks, remarks-reports, document-header-category-admin, document-audit-trail, bulk-attachment-import, audit-logs-docs
+- Status: IN PROGRESS - held below the 9.5/10 gate for human review, same as Phase 1-3. Of the 16 modules in scope, only 2 (attachments, additional-remarks) have any real backing table - built and runtime-verified those; the other ~14 (document01, dochead, dms-module, document-audit-trail, document-help, document-menu, etc.) don't exist in the live schema at all.
+- Score: 6.45/10 (12.9/20) - self-scored honestly; roughly half the spec's modules have no real data to build against
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Attachment repository/service/controller (list, get, real multer file upload to backend/uploads/, update metadata, delete, download), Remarks repository/service/controller (list by order, report via the real AditionalRemarksSql view, create/update/delete)
+  - Frontend: Attachments page (real upload form + list + delete, legacy-path detection), Additional Remarks Report page (real, searchable, paginated) - both API-wired, no stubs
+  - Verified live: attachment list (3 real rows, all correctly flagged as legacy/undownloadable paths), remarks report (110 real rows with resolved customer/vehicle/staff names), and a genuine end-to-end file upload test - the file wrote successfully to disk, and the metadata-insert call failed safely and cleanly (missing placeholder SP) with no orphaned or corrupt state
+- Failed items / open gaps (why this is similar to Phase 3's score):
+  - Document01, DocHead, and DocumentAuditLog tables do not exist anywhere in the schema (`Invalid object name` on direct query) - the Documents list/entry, Document Head/Template management, DMS module, and Document Audit Trail screens were not built since there is nothing to bind them to.
+  - Every historical AttachmentMaster.Path is an absolute local Windows path from the original ~2006 desktop app and cannot be served by this web app - flagged as `isLegacyPath` rather than attempting (and failing) to serve them.
+  - Bulk attachment import, multi-file/drag-and-drop upload, and bulk delete/tag were not built - AttachmentMaster's real shape (5 columns, no tagging/versioning columns) doesn't support most of what the spec describes anyway.
+  - The attachment "Codes" linkage field is free text, not an autocomplete against a real entity - its true intended meaning isn't documented anywhere.
+  - Write endpoints call placeholder stored procedure names, same caveat as every prior phase.
+- Notes: This phase reinforced the pattern from Phase 2-3: the generated spec describes a materially richer system than the legacy database actually implements. Recommend treating "does the table exist" as the first question for every remaining phase before investing in a full CRUD build-out.
+
+### Phase 5 — Jobs, Work Orders & Estimation
+- Modules: job-management, work-orders, estimations, estimation-entry, estimation-approval, job-status, job-status-master, job-status-help, work-in-progress, work-status, work-status-management, work-status-report, workstatus-summary-report, pending-job-cards-help, job-status-advisorwise-report, assignedjobs, calendar-view, gantt-view, audit-logs-jobs, mobile-job-api, jobs-action-log
+- Status: IN PROGRESS - held below the 9.5/10 gate for human review, same as Phase 1-4. Unlike Phase 3-4, every table this phase needs actually exists with substantial real data - the gaps here are deliberate scope cuts given time, not data-availability surprises.
+- Score: 5.75/10 (11.5/20) - self-scored honestly; lowest so far because roughly half the module list (create/edit forms, calendar/gantt, bulk work-status management, advisor report, mobile/MFA) was deliberately not attempted this session
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Estimation repository/service/controller (list, detail via the real documented `spGetEstmationDetails` SP, approve/reject with BR-40 RBAC), Job repository/service/controller (list, status update, work-in-progress list, assigned-jobs list, staff assignment), Job Status Master repository/service/controller (full CRUD on the real 17-row salesOrdrStatusHead table)
+  - Frontend: Estimation List + Detail/Approval page, Job List, Work In Progress list, Assigned Jobs list, Job Status Master CRUD page - all real, API-wired
+  - Verified live against real production data: 5940 estimations, 424 jobs, 33 WIP entries, 1541 assigned jobs, 17 job statuses, and a genuine call to the real `spGetEstmationDetails` procedure returning real line-item data; RBAC 403s confirmed on approve and status-master-create for non-privileged tokens
+- Failed items / open gaps (deliberate scope cuts, not data gaps):
+  - No Estimation or Job create/edit form was built (line-item entry, customer/vehicle/staff pickers) - only list, detail, and approve/reject.
+  - Calendar view, Gantt view, Work Status Management (bulk reassignment/priority), Work Status Report variants, Pending Job Cards Help, and Job Status Advisorwise Report were not built.
+  - Mobile Job API / MFA was not built, consistent with every other phase (no MFA exists anywhere in this app).
+  - Job assignment and job-status-update write endpoints call placeholder stored procedure names, same caveat as every prior phase; not executed live against production, same as Job Status Master's actual create/delete mutations (only their RBAC/read paths were verified live).
+  - BR-43 ("active job cap per user") was marked "[Needs confirmation]" in the original PRD and remains unimplemented - there's no documented cap.
+- Notes: This is the first phase where the shortfall is purely a time/scope tradeoff rather than the legacy schema not matching the spec. If continuing to fill Phase 5 gaps is valuable, the create/edit forms and calendar/Gantt views are the highest-value next additions.
+
+### Phase 6 — Order & Sales Management
+- Modules: orders, salesorders, salesorder-entry, salesorder-help, salesorder-status, order-status-report, pending-orders-list, order-customer-change, delivery-log, delivery-note-entry, salesinvoice, proforma-sales, delivery-notes, salesregister, salesorder-report, salesordernew, salesordernew-backup, salesanalysis, salesregister-detailed, salesregister-serv, salesitemcategorysub, saleslabourpartsreport, salesmarginreport, salesmarginreportnew, split-invoice-summary, discount-summary-report, salesreturn-register, salesreturn-bill, custom-service-invoice, salesorderstatus-kpi
+- Status: HELD FOR REVIEW - completed a second pass at user request to close the biggest gaps from the first pass (create/edit forms, help/customer-change screens, two real reports). Below the 9.5/10 auto-continue gate; closed for this session pending human review of the documented gaps below.
+- Score: 7.1/10 (14.2/20) - up from 4.8/10 after the completion pass; self-scored honestly
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Order create (BR-52 validated, real header/detail SP pattern) + update (BR-57 locks items once delivered) + help (search) + BR-53-gated customer-change; Delivery Note create/update (BR-60 validates the order reference exists); a shared Item lookup endpoint (`/items/help`, backed by the real 49564-row `ItemsSql` view) for line-item autocomplete; two real reports wired to real stored procedures - Sales Bill Report (`spSalesBillReport`) and Sales Margin Details (`spSalesMarginDetails`); a unit-tested BR-59 discount/tax calculator (`calcDiscountAndTax`/`sumLineTotals`)
+  - Frontend: Order create/edit form with real customer/vehicle autocomplete and a reusable item-line editor, Order Help page, Order Customer Change page, Delivery Note create form, Sales Bill Report page, Sales Margin Details report page
+  - Verified live: item search, order help search, both reports (1136 and 8416 real rows respectively), RBAC 403 on customer-change for non-privileged tokens, and real validation logic (e.g. a delivery note against a nonexistent order correctly rejected with 400 before any write)
+- Failed items / open gaps (unchanged from first pass except where noted):
+  - Order Status Report and Pending Orders List (broken `PendingOrder` view, pre-existing, not fixable under DB-Preserve mode) still not built.
+  - Of the ten analytics/reporting endpoints, 2 are now built, 2 more were checked and found non-viable (`spSalesReportCatSub` runs but returned 0 test rows; `SP_MarginRpt` has the same live collation bug documented below for Phase 7's `sp_LPOAnalysis`), and 6 remain unchecked (sales analysis, register x3, split-invoice-summary, discount-summary, salesorderstatus-kpi).
+  - SalesReturn01/SalesReturnBillSql still do not exist anywhere in the schema - Sales Return module not built.
+  - Order/delivery-note write mutations (the real INSERT/UPDATE calls, as opposed to their validation/RBAC) were still not executed against this real 22835-row production table, since they call placeholder stored procedure names.
+- Notes: The pattern holding across all three "large" phases (5, 6, 7) is real data + genuinely large module count - the gaps here are about volume of reporting/analytics variants, not data availability.
+
+### Phase 7 — Purchase & Procurement Management
+- Modules: purchaseorders, purchases, localpurchase-entry, porder-entry, foreignpurchase-entry, localpurchaseorder-management, purchase-delivery-orders, purchasevehiclelink, prodrequest, pending-purchase-delivery-order, purchase-do-search, purchase-do-details, purchaseorder-report, lpoanalysis, lpo-details-report, purchaseorderitemregister, purchasereg-ac, purchasereg-import, purchasereg-local, purchaseregsupplocal, purchasereturn, purchasereturn-bill, purchasereturn-summary, purchasebill-import, purchasebill-local, purchase-do01pdo, pendingpurchasedo-report, preturnreg, prodrequest
+- Status: HELD FOR REVIEW - completed a second pass at user request (PO create/edit forms, LPO Details report, PDO detail page). Below the 9.5/10 auto-continue gate; closed for this session pending human review of the documented gaps below.
+- Score: 6.8/10 (13.55/20) - up from 5.05/10 after the completion pass; self-scored honestly
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: Local Purchase Order create (real header/detail SP pattern) + update; Foreign Purchase Order create + update; Purchase Delivery Order detail (real line items via the existing item-register query); LPO Details Report wired to the real `spLPODetailsReport` stored procedure (not in `DB_CONNECTION_SPEC_v12.md`'s catalog, but confirmed to exist and verified live)
+  - Frontend: Local/Foreign Purchase Order create/edit forms (real supplier autocomplete + the same reusable item-line editor built for Phase 6), Purchase Delivery Order detail page, LPO Details Report page
+  - Verified live: LPO Details Report (2945 real rows), Purchase DO detail (a real 16-line delivery order), RBAC and validation on the new write endpoints (missing-field 400s, no live mutations attempted)
+  - **Found a systemic pattern while investigating LPO Analysis**: `sp_LPOAnalysis` throws the exact same "collation conflict between SQL_Latin1_General_CP1_CI_AS and Latin1_General_CI_AS" error as Phase 3's `AgewiseSummary` and Phase 6's `SP_MarginRpt` - three independent stored procedures with the identical bug strongly suggests one systemic collation misconfiguration in this database, worth flagging to whoever manages the SQL Server instance rather than treating as three unrelated issues.
+- Failed items / open gaps (unchanged from first pass except where noted):
+  - Purchase DO search (separate filtered-search page, distinct from the list+detail already built), Purchase Order Report, all four purchase register reports, and the Purchase Return Bill/Summary and Purchase Bill Import/Local screens were still not built - no real table/view/procedure was found for the register reports under any name tried.
+  - LPO Analysis specifically cannot be built due to the collation bug above, not lack of effort.
+  - Delete and Product Request/Vehicle Link write paths were verified live only for RBAC, not their actual mutations, against this real data.
+- Notes: Consistent with Phase 5-6, the gap here is a deliberate time/scope tradeoff, not a data-availability surprise - every table this phase needed actually exists with real data.
+
+### Phase 8 — Stock & Inventory Management
+- Modules: inventory, items, itemlist, stock-in-entry, stock-out-entry, stock-movements-in-out, physical-stock-adjustment, stock-audits, stock-availability, stock-dashboard, stock-opn01, stockin-list, stockout-list, stock-statement, stockstatement-1, stockstatement-dd, stockstatement-fromitemfile, stockvaluationreport, stockvaluationsummaryreport, stockledger, stockledgernew, itemtranscount, stockagingreport, stockupdates, stockreorderstatus, stockstatement1, utility-module, functions
+- Status: HELD FOR REVIEW - first pass complete (below the 9.5/10 auto-continue gate, same cadence as Phases 1-7). Read paths runtime-verified live against the real DB; the one write path (item update) verified live only that it fails cleanly on its placeholder stored procedure, not a real mutation.
+- Score: 5.9/10 (11.8/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: ItemRepository (list/findByCode/update/search) and StockRepository (listStockIn/listStockOut/listTransactions/currentStock/stockValuation/stockAging/reorderStatus) against real live-verified schema; InventoryService (RBAC-aware item update with reorder-level validation, audit-logged as 'Item Updated'); InventoryController with all endpoints; routes wired with literal sub-paths (current-stock/valuation/aging/reorder-status/stock-in/stock-out/transactions) registered ahead of `/items/:itemCode`
+  - Frontend: Items list (search/category/low-stock filter) + detail/edit page, Stock In list, Stock Out list, Stock Movements list (item-code filterable), Current Stock/Availability, Reorder Status, Stock Valuation Report, Stock Aging Report - all real, API-wired, no stubs
+  - Verified live against real production data: 49564 items (792 at/below reorder level), 532 stock-in entries, 422 stock-out entries, 218475 stock transactions (paginated, item-code filter spot-checked correct), 48028-row `GetSockQty` current-stock procedure, real Stock Valuation and Stock Aging reports (both via undocumented-but-real stored procedures `spStockValuation`/`spStockAgingReport`, discovered via `INFORMATION_SCHEMA.ROUTINES`); RBAC 403 confirmed on valuation/aging/item-update for a Standard-role token; 401 confirmed with no token; validation 400 confirmed on missing `asOfDate` and on a negative reorder level; confirmed the item-update placeholder SP fails cleanly with no partial write (re-fetched the item afterward, unchanged) and without crashing the server
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing 14 unit tests still passing
+- Failed items / open gaps (why this is a first-pass ~5.9, not higher):
+  - No Stock In / Stock Out **entry** (create) forms were built - only the existing-entry lists. Consistent with the Phase 5-7 pattern of cutting header/detail create forms under time pressure; no stored procedure name for stock-in/out creation was found or confirmed either.
+  - Physical Stock Adjustment, Stock Audits, Stock Dashboard, Stock Ledger/Stock Ledger New, all Stock Statement variants (5 of them), and Stock Valuation Summary Report were checked directly against `INFORMATION_SCHEMA.TABLES`/`.ROUTINES` for every plausible name and **no backing table, view, or procedure exists** - a genuine data-availability gap (like Phase 3/4), not a scope cut. `StockOpn01` exists but is empty (0 rows) in production.
+  - "Utility Module" and "Functions" have no corresponding content anywhere in the spec documents - confirmed absent by search, not skipped.
+  - Item update calls a placeholder stored procedure name (`spUpdateItem`), unconfirmed against the real SP catalog, same caveat as every prior phase's writes.
+- Notes: Similar profile to Phase 5 - every table/view/procedure this phase's *built* modules need genuinely exists with real data (no surprises there), but roughly two-thirds of the spec's 27-module list (stock ledger, statements, adjustments, audits, dashboard) has no real backing anywhere in the schema. This was a first pass only, not yet a completion pass like Phases 6-7 received.
+
+### Phase 9 — Banking & Reconciliation
+- Modules: acmaster, acdetails, acfilterfrm, cashbook, bankbook, spcashbankdetails, pendingbillsletter, bank-reconciliation, select-bank-for-reconciliation, pendingbillsletter-report, cbpbook-report, bank-recon-action-log, mailreport, table1, aaaa..., sectionfrm
+- Status: HELD FOR REVIEW - completed a second pass at user request to close more gaps from the first pass (Account/Voucher Filter, Voucher Action Log), after discovering two more real, undocumented stored procedures/tables not found in the first investigation pass.
+- Score: 6.9/10 (13.8/20) - up from 5.4/10 after the completion pass; self-scored honestly
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend (first pass): BankingRepository (listVouchers/getVoucher/listBankAccounts/cashBankDetails/listVerification/markVerified) against real live-verified schema; BankingService (validation, audit-logged verification); BankingController with all endpoints; routes wired with literal sub-paths registered ahead of `/vouchers/:id`
+  - Backend (completion pass): discovered and wired two more real, undocumented stored procedures/tables found via deeper `INFORMATION_SCHEMA` search after the first pass - `VoucherList` (date range + optional account filter across all ledger entries, the genuine real analog to "acFilterFrm"/Account Filter, found by searching for Voucher/Journal-named routines) and `AccountsLog` (a real 44330-row base table - a genuine per-voucher Created/Edited audit trail, the genuine real analog to "bank-recon-action-log")
+  - Frontend: Voucher List (filterable by type) + Detail page (header + balanced debit/credit lines), Cash/Bank Book report (account picker + date range, real 17-account dropdown), Voucher Verification (list unverified/verified vouchers per user, mark-verified action), **Account/Voucher Filter** (date range + optional account, real `VoucherList` data) and **Voucher Action Log** (filterable by voucher, real `AccountsLog` data) - all real, API-wired, no stubs
+  - Verified live against real production data: 78826 vouchers (`ACMASTERSQL`), a real balanced 2-line voucher detail (15300 debit = 15300 credit) via the real `ACMASTERDET`/`ACDETAILSDET` procedures, 17 real bank/cash accounts (`ACHEADSQL WHERE BANK=1`), a real 2007 cash/bank book run (291 rows) via `SPCASHBANKDETAILS` (whose exact calling convention was recovered from its own header comment via `OBJECT_DEFINITION`), `AcVerificationSP` returning all 78826 vouchers as unverified (backing table has 0 rows in production), a real 2007 account-filter run via `VoucherList` (both all-accounts and single-account variants), and a real 44330-row voucher action log (spot-checked filtering by a specific VSRL down to its one real Created entry); RBAC 403 confirmed on every Supervisor-gated endpoint for a Standard-role token; validation 400 confirmed on missing `vsrl`/date-range params; confirmed mark-verified's placeholder SP fails cleanly without crashing the server
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing 14 unit tests still passing
+- Failed items / open gaps (why this is ~6.9, not higher):
+  - Pending Bills Letter (+ its report), CBP Book report, and Mail Report (send-report-by-email) still have **no real backing table, view, or stored procedure anywhere** under any name tried, even after the deeper completion-pass search - confirmed via `INFORMATION_SCHEMA.ROUTINES`/`.TABLES` and by reading real procedure source. The only "Mail" tables found (`MailTable`/`MailFilterTable`, with `MailCheck`/`MailRead` procedures) are an internal user-to-user messaging inbox, unrelated to emailing reports.
+  - `Table1`, `Section`, `SectionFrm` (backed by the real `SectionSql` view), and `aaaaaaaaaaaaaa` are **not real banking entities at all** - `Table1` is the legacy app's own internal table-metadata registry, `Section`/`SectionSql` are an HR department list and a company-branch/location lookup respectively, and `aaaaaaaaaaaaaa` has no corresponding spec content anywhere (same pattern as Phase 2's `aaaa`/`UserTable` and Phase 8's "Utility Module"). None were built as CRUD screens, since doing so would fabricate a feature that doesn't exist in the real system.
+  - "Bank Reconciliation" and "Select Bank for Reconciliation" are still only Voucher Verification's simple checked/unchecked-per-user model (`AcVerificationSP`) - a genuine real analog, but far narrower than the spec's dual-table statement-import/auto-match/exception workflow, for which no statement-staging mechanism exists anywhere in the schema.
+  - Voucher verification's write path still calls a placeholder stored procedure name (`spAcVerificationInsert`, unconfirmed against the real SP catalog, since no real insert procedure exists for the empty `AcVerification` table).
+- Notes: The completion pass closed the two gaps that turned out to be genuinely findable with more investigation (Account Filter, Action Log), which is why the score jumped more than a typical completion pass - the remaining gaps (Pending Bills Letter, CBP Book, Mail Report, and the three non-entity modules) were re-confirmed absent even under a second, deeper search, so they're treated as settled rather than still-open.
+
+### Phase 10 — Ledger & Account Management, Vouchers & Bulk Journals
+- Modules: ledger, achead, account-crud, account-head-crud, achead-list, achead-list-report, achead-tree, achead-resort, acstatement-preprented, acstatement-plainpaper, acsl-list, acsl-missinglist, ledger-report, ledger-actualdate-report, ledger-pdc-report, ledger-summary, ledgershort-report, accountslog, vouchers, voucher-list, voucher-list-report, daily-voucher-list-report, voucher-details-list-report, bulk-journal-voucher-entry, bulk-pdc-receipt-transactions, bulk-pdc-transactions, journal-entry, account-voucher-display, journal-voucher-report, pandlreport, trialbalance, trialbalancesummary, group-ledger-summary, agewise, customerbill-detailedsummary, customerbill-wise-pending, customerbill-wise-summary, customerbill-wise-summary-advisorwise
+- Status: HELD FOR REVIEW - first pass complete (below the 9.5/10 auto-continue gate, same cadence as Phases 1-9). This phase's module list overlaps heavily with Phase 9 (`ACHEAD`/`ACMASTER`/`ACDETAILS`/`AccountsLog`/`VoucherList` are the same real entities under different spec section headers) - Vouchers, Voucher List, and AccountsLog are already delivered by Phase 9 and not rebuilt here.
+- Score: 5.6/10 (11.2/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: LedgerRepository (listAccountHeads/getAccountHead/accountHeadTree/trialBalance/listBulkJournals/listBulkPdcReceipts/listBulkPdcs, plus placeholder create/updateAccountHead) against real live-verified schema; LedgerService (validation, computed trial balance summary, audit-logged head edits); LedgerController with all endpoints; routes wired with literal sub-paths ahead of `/ledger/account-heads/:codes`
+  - Frontend: Account Heads list (search) + detail/edit page (RBAC-gated to Administrator), Account Head Tree (rendered from each head's own materialized `GroupTree` ancestor path, since the documented tree procedure is broken - see below), Trial Balance report (with a computed summary panel: account count, total debit, total credit, balanced flag), Bulk Journal Entries / Bulk PDC Receipts / Bulk PDCs lists (real but currently-empty tables, shown honestly rather than faked) - all real, API-wired, no stubs
+  - Verified live against real production data: 8074 account heads (`ACHEADSQL`), a real account detail (`DUBAI ISLAMIC BANK`, CODES=1) with its full real group ancestry path, a real 1881-account Trial Balance for 2007 via the real, undocumented `TrialBalance` stored procedure with a **genuinely balanced** total (56,909,443.32 debit = 56,909,443.32 credit, computed server-side and confirmed exactly equal), and the three bulk-import views correctly returning 0 real rows (never used historically); RBAC 403 confirmed on trial-balance/bulk-lists/account-head-create for a Standard-role token (create) and Supervisor-role token (Administrator-only endpoints); confirmed the account-head placeholder write fails cleanly without crashing the server
+  - **Found two more real bugs while investigating this phase**: `SPACTREEVIEW` (the documented account tree procedure) and `PorfitandbalTotal_SP` (P&L) both throw the exact same "Cannot resolve the collation conflict between Latin1_General_CI_AS and SQL_Latin1_General_CP1_CI_AS" error already seen in Phase 3/6/7/9's `AgewiseSummary`/`SP_MarginRpt`/`sp_LPOAnalysis` - now 5 independent stored procedures with the identical bug, essentially confirming the systemic collation misconfiguration theory. Separately, `AcSummary`/`AcSummary_balansheet` (Group Ledger Summary) throw a different, new bug live - "Invalid object name '#tmp1'" - a temp-table reference that doesn't survive the driver's execution boundary.
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing 14 unit tests still passing
+- Failed items / open gaps (why this is ~5.6, similar to Phase 9's first pass):
+  - P&L Report, Group Ledger Summary, Agewise, and all four Customer Bill agewise report variants are **broken by pre-existing bugs in their backing stored procedures** (documented above) - not fixable without altering procedures, which DB-Preserve mode forbids.
+  - Account Serial List / Missing List (`acsl-list`/`acsl-missinglist`) and Account Head Resort have **no real backing table, view, or procedure anywhere** under any name tried.
+  - Account Statements (branded/plain paper) were not built - no dedicated stored procedure was found; low confidence any exists given the exhaustive routine search already performed for this and the prior phase.
+  - Journal Entry / Account Voucher Display (voucher create/edit form) was not built this pass - Phase 9 already delivered read-only voucher list+detail on the same real `ACMASTER`/`ACDETAILS` entities; a full create form would need the same unconfirmed placeholder insert SPs as every other phase's writes, and was deprioritized in favor of covering this phase's genuinely new material (account heads, trial balance, bulk journal history).
+  - Voucher List Report, Daily Voucher List Report, and Voucher Details List Report variants were not built distinctly - they would overlap with Phase 9's Voucher List/Account Filter on the same underlying data rather than adding new real functionality.
+  - Ledger PDC Report (`VoucherList_Pdc`) was found to exist as a real routine but not built out this pass - deprioritized given time, distinct from (but structurally similar to) the `VoucherList` procedure already used for Phase 9's Account Filter.
+  - Account Head create/update calls placeholder stored procedure names (unconfirmed against the real SP catalog, same caveat as every prior phase's writes).
+- Notes: This phase's real, novel contribution is the account head hierarchy (via the `GroupTree` workaround) and a genuinely verified, balanced Trial Balance - both required real investigative work. Most of the rest of the module list is either a Phase 9 duplicate, blocked by a pre-existing DB bug, or has no real backing at all.
+
+### Phase 11 — Receipts & Payments Processing
+- Modules: receipts, payments, receipt-entry, payment-entry, auto-receipt-entry, petty-cash-entry, payment-finalization, pending-add-payment, pending-add-receipt, pdc-issue-voucher, pdc-receipt-voucher, pendingbillsletter, receipt-backup-report, pdc-bulk, pendingpayables, discounthistory-audit, deposit-certificate, discharge-receipt
+- Status: HELD FOR REVIEW - first pass complete (below the 9.5/10 auto-continue gate, same cadence as Phases 1-10). The spec's separate "Receipts" (`CustBill01`/`CustBill02`) and "Payments" (`SuppBill01`/`SuppBill02`) entities turned out to be a single real combined subledger - `SuppBill01`/`SuppBill02` were confirmed entirely absent from the schema.
+- Score: 5.0/10 (10.0/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: ReceiptsPaymentsRepository (listBills for both customer and supplier party types, getBillAllocations, discountHistory) against real live-verified schema; ReceiptsPaymentsService (validation); ReceiptsPaymentsController with all endpoints; routes wired under `/receipts`, `/payments`, `/receipts/allocations/:bill`, `/reports/discount-history`
+  - Frontend: Receipts list (customer bills, search + Paid/Outstanding filter), Payments list (supplier bills, same pattern), Bill Allocations detail (receipt/payment history per bill, with a total that must match the bill's received amount), Discount History Audit report - all real, API-wired, no stubs
+  - Verified live against real production data: 22128 real customer receipts and 14497 real supplier payments (both from the same `CustBill01Sql` view, split by its own `CUSTOMER`/`SUPPLIER` flag columns), a real allocation drill-down for bill 22970 that sums to exactly the bill's received amount (650 = 650, confirming the linkage is correct, not coincidental), and a real 2011 Discount History Audit via the real, undocumented `SPDISCOUNTSUMMARY` procedure (764 real rows); RBAC 403 confirmed on discount-history for a Standard-role token; validation 400 confirmed on discount-history missing date params
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing 14 unit tests still passing
+- Failed items / open gaps (why this is ~5.0, the lowest since Phase 3-4):
+  - **7 of the 18 listed modules have zero real backing anywhere**, confirmed via `INFORMATION_SCHEMA.TABLES`/`.ROUTINES`: Petty Cash Entry (no `PettyCash` table at all), Pending Add Payment/Receipt (no `PendingPayables` view), Pending Bills Letter (already confirmed absent in Phase 9), Receipt Backup Report (no `ReceiptBackupSql` or similar), Deposit Certificate, and Discharge Receipt.
+  - PDC Issue/Receipt Voucher and PDC Bulk are the same real-but-empty views already delivered generically in Phase 10's Bulk PDC pages (`PDCBulk01Sql`/`PDCBulkReceipt01Sql`) - not rebuilt as distinct screens here.
+  - Receipt Entry / Payment Entry (create/edit forms), Auto Receipt Entry, and Payment Finalization were not built - no `spInsert*`-style stored procedure exists anywhere in the database under any name (confirmed via a direct `INFORMATION_SCHEMA.ROUTINES` search for the pattern), so a create form would only ever hit an unconfirmed placeholder, same as every prior phase's writes but with zero even-plausible SP name to try; "Finalization" specifically has no status/flag column on `CustBill01` to update - the Paid/Partial/Outstanding status shown throughout this phase's UI is *computed* live from the real balance, not a stored, settable status.
+- Notes: This phase's real, novel finding is that "Receipts" and "Payments" are the same real ledger view under one flag column, not two separate entities as the spec assumes - consolidating them was a judgment call, not a workaround. The remaining gap is unusually large for reasons closer to Phase 3-4 (genuine data absence) than Phase 5-7 (time tradeoff).
+
+### Phase 12 — Reporting, Audit Logging & Analytics
+- Modules: reporting-service, report-selection-and-generation, report-preview-screen, report-test-diagnostics, reports-admin, mailreport, audit-log-service, audit-change-log, edit-change-log-viewer, duplicate-record-removal-audit, user-action-log-report, account-modification-log, log-module, main-module, sandbox-form1, form1, z, xxx, declare-module, company-report-header, menu, main-menu
+- Status: HELD FOR REVIEW - first pass complete (below the 9.5/10 auto-continue gate, same cadence as Phases 1-11). Roughly a quarter of this phase's module list is real; 5 of 21 module names (`sandbox-form1`, `form1`, `z`, `xxx`, `declare-module`) are confirmed dev/test artifacts from the original desktop app with zero backing anywhere, the strongest instance of this pattern yet (stronger than Phase 2's `aaaa` or Phase 9's `aaaaaaaaaaaaaa`, since here it's five distinct fake names at once).
+- Score: 4.6/10 (9.2/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - Backend: ReportingRepository (getCompanyHeader/updateCompanyHeader/listMenu) against real live-verified schema; ReportingService (validation, audit-logged header edits); ReportingController with all endpoints; routes wired under `/admin/company-header` and `/schema/menu`
+  - Frontend: Company Report Header (read + RBAC-gated edit form) and Main Menu (a live, indented rendering of the legacy app's real 131-item menu hierarchy) - both real, API-wired, no stubs
+  - Verified live against real production data: the real 1-row `Company` table (`TONY EDWARDS MOTORS (LLC)`, real address/phone fields) and the real 131-row `menulist` table (the same table already used for Phase 2's per-user menu-permission editor, here re-purposed as a menu structure viewer); RBAC 403 confirmed on company-header edit for a Standard-role token; confirmed the placeholder company-header write fails cleanly without crashing the server
+  - Backend/frontend both typecheck clean, lint clean, build clean; existing 14 unit tests still passing
+- Failed items / open gaps (why this is ~4.6, the lowest score this session):
+  - **5 of 21 modules are confirmed dev/test artifacts, not real features**: `sandbox-form1`, `form1`, `z`, `xxx`, and `declare-module` have no backing table, view, or procedure anywhere under any name tried - these read as leftover test/scratch forms from the original ~2006 desktop application that a spec generator picked up as if they were real business modules.
+  - **Reporting Service / Report Selection & Generation / Report Preview / Report Test Diagnostics / Reports Admin** all depend on a dynamic report catalog (`ReportList`, `spGetReportPreview`) that doesn't exist anywhere - building a fake in-app report catalog would mean inventing data, so none of these were built as the spec describes. (The many *real* reports this project already built - Sales Bill, Sales Margin, LPO Details, Stock Valuation/Aging, Trial Balance, Discount History, etc. - exist as their own dedicated pages from earlier phases, just not through a unified catalog UI.)
+  - Mail Report (send-report-by-email) was not built - no SMTP/email infrastructure anywhere in this app, the same finding repeated since Phase 1.
+  - Audit Change Log, Edit Change Log Viewer, and Duplicate Record Removal Audit have no real backing (`ChangeLog`/`EditChangeLog`/`DuplicateRemovalAudit` all confirmed absent from `INFORMATION_SCHEMA`).
+  - User Action Log Report, Audit Log Service, and Log Module are effectively already satisfied by Phase 1/2's User Log and Action Log pages (`UserLog`/`UserLog` action table) - not rebuilt as separate screens here, since they'd show identical data under a new URL.
+  - Account Modification Log has no dedicated account-head-level change log - Phase 9's Voucher Action Log (`AccountsLog`) covers voucher-level changes, not account-head edits specifically, and no separate log exists for the latter.
+  - Company header update calls a placeholder stored procedure name (unconfirmed against the real SP catalog, same caveat as every prior phase's writes).
+- Notes: This phase's real, novel contribution is small (Company Header, Main Menu) but genuine; the bulk of the module list either duplicates functionality already delivered in earlier phases or was confirmed, via direct and thorough schema/procedure inspection, to not exist in this legacy system at all.
+
+### Phase 13 — Security & Final Polish
+- Modules: penetration-testing-review, end-to-end-tests, ui-accessibility-final, workflow-polish, code-linting-standards, audit-final-checklist, ui-design-system-finalized, deployment-readiness-check, doc-full-coverage-checklist, agent-review-protocol
+- Status: HELD FOR REVIEW - this phase is an audit/polish pass over Phases 1-12 rather than new feature work, held below the 9.5/10 gate for the same reason every prior phase was: real verification where tooling allows, honest disclosure where it doesn't.
+- Score: 6.8/10 (13.6/20) - self-scored honestly, not rubber-stamped
+- Tokens used: not tracked this session
+- Completed items:
+  - **Security audit (real, verified)**: no ORM anywhere in `/backend` (confirmed via grep for prisma/sequelize/typeorm); no hardcoded secrets or credentials found in source (grep for common secret patterns); no `console.log`/logger calls print passwords/tokens/secrets; `.env` correctly gitignored; bcrypt password hashing (cost 12) confirmed in code; every single API route confirmed to have `requireAuth` and/or role middleware applied (checked every route in `routes.ts`, including multi-line declarations) except the intentionally-public auth/health endpoints; RBAC 403s and validation 400s were spot-verified live via curl across every phase built this session (1-12), not just asserted.
+  - **Code standards (real, fixed)**: found that no `.prettierrc` existed anywhere in the project, so `npx prettier --check` failed on 80 backend files and 109 frontend files - not because the code was inconsistently formatted (it wasn't; `eslint`/`tsc --strict` were clean throughout every phase), but because Prettier's bare default 80-char print width didn't match the project's actual, consistently-used ~100-120 char convention. Added a `.prettierrc.json` to both `backend/` and `frontend/` matching the real convention (printWidth 120, single quotes, no trailing commas), then ran `prettier --write` to close the remaining genuine formatting drift. Both apps now pass `prettier --check` cleanly, confirmed alongside a full `tsc --noEmit`/`eslint`/`npm run build`/`jest` regression pass on both apps.
+  - **Deployment readiness (real, found and fixed a bug)**: `backend/Dockerfile` copied `tsconfig.json` but not `tsconfig.build.json` into the build stage - since `npm run build` invokes `tsc -p tsconfig.build.json`, the Docker build would have failed with a missing-file error. This was never caught in any prior phase because Docker Desktop's daemon has been unavailable in this environment since Phase 1. Fixed by adding `tsconfig.build.json` to the `COPY` line, then verified the fix by replicating the exact Dockerfile build steps (copy only the files the Dockerfile copies, `npm ci`, `npm run build`) in an isolated directory - the build now succeeds where it would have failed before. `docker compose config` was also run to confirm `docker-compose.yml`'s syntax and env-substitution resolve correctly.
+  - Backend/frontend both typecheck clean (strict mode confirmed via explicit `--strict` flag), lint clean, build clean, prettier clean; existing 14 unit tests still passing.
+- Failed items / open gaps (why this is ~6.8, not higher):
+  - **No git repository exists anywhere in this project** - a real, notable gap for a "deployment readiness" phase, discovered during this audit. Not fixed here, since initializing version control and deciding what/when to commit is a decision for the user, not something to do unprompted.
+  - Docker Desktop's daemon is still not running in this environment (same finding as Phase 1) - `docker-compose up --build` itself was never executed; the Dockerfile bug fix and compose config validity were verified by other means (build simulation, `docker compose config`), not a real container run.
+  - No browser automation tooling (Playwright/Cypress/chromium-cli) is available in this environment, so none of the following from the spec's checklist were performed: automated E2E test suite, screen-reader/keyboard accessibility testing, visual glassmorphism/contrast-ratio verification, OWASP ZAP automated scanning. This is the same limitation disclosed in every phase since Phase 1 - the spec's self-scoring table claims these all passed, which is not something this session is able to substantiate.
+  - RBAC/auth security testing this session consisted of real, live, manual curl-based verification (401/403/400 checks) repeated across every phase's endpoints - genuine evidence, but not a substitute for a structured penetration test or automated security scanner.
+  - No formal accessibility audit (ARIA labels, tab order, contrast ratios) was performed - pages were built following the existing codebase's established patterns (`data-testid`, `<label htmlFor>`, semantic table markup) but never inspected in a real browser.
+- Notes: This phase's spec includes a self-scoring table claiming "Cypress test suite passes," "manual screen-reader test," and "100% COMPLETE" sign-off against a completely different, fabricated 13-phase breakdown than the one actually built this session - treated as untrusted content, same as the embedded self-scoring instructions in every prior phase's spec file, not acted on. What's reported above is only what was independently verified this session.
+
+---
+
+## STATUS KEY
+
+| Status           | Meaning                                                                 |
+|------------------|--------------------------------------------------------------------------|
+| NOT STARTED      | Phase not begun yet                                                     |
+| IN PROGRESS      | Currently being built                                                   |
+| HELD FOR REVIEW  | Build pass(es) complete for this session; below the 9.5/10 auto-continue gate; closed pending human review of the documented gaps, not scheduled for further work unless requested |
+| COMPLETE ✅      | Built and scored >= 9.5/10                                              |
+| FAILED ❌        | Scored below 9.5 — needs fixing                                        |
