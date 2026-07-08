@@ -15,8 +15,10 @@ export async function hashPassword(rawPassword: string): Promise<string> {
 }
 
 export async function comparePasswords(raw: string, hashed: string): Promise<boolean> {
-  // Legacy USERS.Pw values predate bcrypt and are stored as plain text (nvarchar(30),
-  // too narrow to hold a 60-char bcrypt hash). Fall back to a direct comparison for those.
+  // Legacy USERS.Pw values predate bcrypt and are stored as plain text - the column used to be
+  // nvarchar(30), too narrow to hold a 60-char bcrypt hash, so nothing hashed could have been
+  // written before it was widened (see UserRepository.ts). Fall back to a direct comparison
+  // for those pre-existing rows.
   if (!hashed.startsWith('$2')) {
     return raw === hashed;
   }

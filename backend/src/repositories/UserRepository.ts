@@ -25,6 +25,12 @@ import { User, Role, UserLogEntry, UserListItem, MenuPermission } from '../model
  *   should replace it once someone who knows the legacy app confirms what Option actually
  *   means and how mnuId-based menu access should map to feature-level RBAC.
  * - UserLog's IP column is spelled `IpAdresses` (not IPAddress) in the real schema.
+ * - USERS.Pw was originally nvarchar(30) - wide enough for the legacy plaintext passwords but
+ *   too narrow for a 60-char bcrypt hash, so every create/reset/change-password write failed
+ *   with SQL error 8152 ("String or binary data would be truncated"). Widened live to
+ *   nvarchar(100) on 2026-07-08 (one-off ALTER, not a migration) specifically so new hashes
+ *   fit; comparePasswords()'s plaintext fallback in auth/password.ts stays in place for rows
+ *   written before this change.
  *
  * Writes (password/lock/log) still go through callProcedure() per STANDARDS.md, but the
  * exact stored procedure names are placeholders (see note above each call) since
