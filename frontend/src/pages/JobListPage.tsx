@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { jobApi, JobListItem } from '../api/jobApi';
+import { jobApi, jobStatusMasterApi, JobListItem, JobStatus } from '../api/jobApi';
+import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
 
 const LIMIT = 25;
@@ -9,10 +10,13 @@ export function JobListPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [customerName, setCustomerName] = useState('');
+  const [statuses, setStatuses] = useState<JobStatus[]>([]);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     setLoading(true);
     setError(null);
     jobApi
@@ -23,7 +27,27 @@ export function JobListPage() {
       })
       .catch(() => setError('Unable to load jobs. Please try again.'))
       .finally(() => setLoading(false));
-  }, [customerName, page]);
+  }
+
+  useEffect(load, [customerName, page]);
+  useEffect(() => {
+    jobStatusMasterApi.list().then(setStatuses).catch(() => setStatuses([]));
+  }, []);
+
+  async function handleStatusChange(jobId: number, statusId: number) {
+    setBanner(null);
+    setError(null);
+    setUpdatingId(jobId);
+    try {
+      await jobApi.updateStatus(jobId, statusId);
+      setBanner('Job status updated.');
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Unable to update job status.');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   return (
     <div className="section-card" data-testid="jobstatus-table">
@@ -40,6 +64,7 @@ export function JobListPage() {
         />
       </div>
 
+      {banner && <div className="alert alert-success">{banner}</div>}
       {error && <div className="error-state">{error}</div>}
 
       {!error && (
@@ -75,7 +100,23 @@ export function JobListPage() {
                     <td>{j.ordr}</td>
                     <td>{j.customerName ?? '—'}</td>
                     <td>{j.vehNo ?? '—'}</td>
-                    <td>{j.statusDescription ?? j.status ?? '—'}</td>
+                    <td>
+                      <select
+                        data-testid={`jobstatus-status-select-${i}`}
+                        value={j.statusId ?? ''}
+                        disabled={updatingId === j.id || statuses.length === 0}
+                        onChange={(e) => handleStatusChange(j.id, Number(e.target.value))}
+                      >
+                        <option value="" disabled>
+                          {j.statusDescription ?? j.status ?? 'Select status'}
+                        </option>
+                        {statuses.map((s) => (
+                          <option key={s.statusId} value={s.statusId}>
+                            {s.description}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
                     <td>{j.staffName ?? '—'}</td>
                     <td>{j.remarks ?? '—'}</td>
                   </tr>

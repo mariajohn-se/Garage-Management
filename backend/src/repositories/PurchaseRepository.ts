@@ -309,7 +309,14 @@ export class PurchaseRepository {
     throw new NotImplementedError('Editing foreign purchase orders is not supported yet - see createForeignPurchase.');
   }
 
-  async listDeliveryOrders(filters: { supplierName?: string; page: number; limit: number }): Promise<{
+  /**
+   * FRONTEND_SPEC_v12.md's separate "Purchase DO Search" screen and this list are the same real
+   * entity (`PurchaseDo01Sql`) under two spec headers - same pattern as Phase 9/10's Voucher
+   * List/Account Filter duplicates. Rather than build a redundant second page, added the one
+   * filter this list was actually missing (PDONo, the human-facing DO number) alongside the
+   * existing supplier-name filter, so the list itself now covers what "search" would have.
+   */
+  async listDeliveryOrders(filters: { supplierName?: string; pdoNo?: string; page: number; limit: number }): Promise<{
     items: PurchaseDeliveryOrder[];
     total: number;
   }> {
@@ -318,6 +325,10 @@ export class PurchaseRepository {
     if (filters.supplierName) {
       conditions.push('SuppName LIKE @supplierName');
       params.supplierName = `%${filters.supplierName}%`;
+    }
+    if (filters.pdoNo) {
+      conditions.push('PDONo LIKE @pdoNo');
+      params.pdoNo = `%${filters.pdoNo}%`;
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const columns = 'ID, PDONo, POrdt, SuppName, Total, Nett, Closed, EntryDt';

@@ -62,6 +62,11 @@ export const customerApi = {
   help: (q: string) => apiRequest<Customer[]>(`/customers/help${qs({ q })}`),
   exportCsv: (filters: { name?: string; phone?: string; status?: string }) =>
     apiRequestText(`/customers/export${qs(filters)}`),
+  importCsv: (csv: string) =>
+    apiRequest<{ created: number; skipped: Array<{ name: string; reason: string }> }>('/customers/import', {
+      method: 'POST',
+      body: { csv }
+    }),
   agewise: (asOfDate: string) =>
     apiRequest<Array<{ bucket: string; amount: number }>>(`/customers/agewise${qs({ asOfDate })}`)
 };
@@ -76,7 +81,12 @@ export const supplierApi = {
     apiRequest<{ message: string }>(`/suppliers/${suppId}`, { method: 'PUT', body: changes }),
   remove: (suppId: string) => apiRequest<void>(`/suppliers/${suppId}`, { method: 'DELETE' }),
   help: (q: string) => apiRequest<Supplier[]>(`/suppliers/help${qs({ q })}`),
-  exportCsv: (filters: { name?: string; phone?: string }) => apiRequestText(`/suppliers/export${qs(filters)}`)
+  exportCsv: (filters: { name?: string; phone?: string }) => apiRequestText(`/suppliers/export${qs(filters)}`),
+  importCsv: (csv: string) =>
+    apiRequest<{ created: number; skipped: Array<{ name: string; reason: string }> }>('/suppliers/import', {
+      method: 'POST',
+      body: { csv }
+    })
 };
 
 export const vehicleApi = {

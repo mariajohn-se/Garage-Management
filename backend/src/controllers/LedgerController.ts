@@ -85,6 +85,17 @@ export class LedgerController {
       next(err);
     }
   }
+
+  async createJournalVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { date, narration, lines } = req.body ?? {};
+      res.status(201).json(
+        await ledgerService.createJournalVoucher(req, { date, narration, lines: Array.isArray(lines) ? lines : [] })
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const ledgerController = new LedgerController();

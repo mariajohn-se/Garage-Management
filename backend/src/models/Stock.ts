@@ -66,3 +66,16 @@ export interface ReorderStatusItem {
   stock: number | null;
   reorderLevel: number | null;
 }
+
+export interface StockMovementLineInput {
+  itemCode: string;
+  qty: number;
+  rate: number;
+  godownId: string;
+}
+
+export interface StockMovementInput {
+  stockDate: string;
+  remarks: string | null;
+  lines: StockMovementLineInput[];
+}

@@ -61,6 +61,23 @@ export class CustomerService {
   async agewise(asOfDate: string): Promise<AgewiseBucket[]> {
     return customerRepository.agewise(asOfDate);
   }
+
+  async bulkImportCustomers(
+    req: Request,
+    rows: Array<Omit<Customer, 'custId' | 'isActive'>>
+  ): Promise<{ created: number; skipped: Array<{ name: string; reason: string }> }> {
+    let created = 0;
+    const skipped: Array<{ name: string; reason: string }> = [];
+    for (const row of rows) {
+      try {
+        await this.create(req, { ...row, isActive: true });
+        created++;
+      } catch (err) {
+        skipped.push({ name: row.name, reason: (err as Error).message });
+      }
+    }
+    return { created, skipped };
+  }
 }
 
 export const customerService = new CustomerService();

@@ -1,4 +1,5 @@
-import { queryView, queryViewPaginated, callProcedure, executeWrite } from '../db/callProcedure';
+import mssql from 'mssql';
+import { queryView, queryViewPaginated, callProcedure, executeWrite, withNextNumericId } from '../db/callProcedure';
 import {
   VoucherListItem,
   VoucherLine,
@@ -7,7 +8,8 @@ import {
   CashBankEntry,
   VoucherVerificationItem,
   AccountFilterItem,
-  VoucherActionLogItem
+  VoucherActionLogItem,
+  ReceiptPaymentVoucherInput
 } from '../models/Banking';
 
 /**
@@ -242,6 +244,84 @@ export class BankingRepository {
       })),
       total: totalRows[0]?.cnt ?? 0
     };
+  }
+
+  /**
+   * VERIFIED (2026-07-08) against real historical Receipt (PAYTYPE='NR', 99.9% of receipts) and
+   * Payment (PAYTYPE='CP' for cash / 'BP' for a real bank account, ~91% of payments combined)
+   * vouchers - the same `ACMASTER`/`ACDETAILS` tables as Journal Vouchers, with the same
+   * CurBal/GroupID/ACTEMP-sentinel judgment calls documented on LedgerRepository.createJournalVoucher.
+   * Unlike a generic Journal, a Receipt/Payment always has exactly one fixed cash/bank side
+   * (ACTEMP, a real `ACHEADSQL WHERE BANK=1` account - confirmed 'CASH' itself is a real BANK=1
+   * row) and N variable "other" (customer/supplier/expense) lines:
+   * - Receipt: each "other" line is CREDITED (customer owes less), the cash/bank line is
+   *   DEBITED (cash increases) for the sum.
+   * - Payment: each "other" line is DEBITED (expense/supplier), the cash/bank line is CREDITED
+   *   (cash decreases) for the sum.
+   * - VAC: each "other" line's VAC = the cash/bank account. The cash/bank line's VAC = the one
+   *   other account when there's exactly one, else the '000000' ("As Per Details") sentinel -
+   *   confirmed live against a real 19-line payment voucher.
+   * - OnAc='O' (letter) for every line - confirmed as the dominant real convention (95-100%
+   *   across Receipt/Payment/Journal alike) after checking a large sample, not just one voucher.
+   * - VTYPE is 'Receipt' (singular) or 'Payments' (plural) - both real, confirmed distinct
+   *   ACMASTER.VTYPE values, not a guess.
+   */
+  async createReceiptPaymentVoucher(input: ReceiptPaymentVoucherInput): Promise<{ id: number; vsrl: string }> {
+    return withNextNumericId('ACMASTER', 'ID', async (nextId, req, transaction) => {
+      const maxVsrlResult = await req.query(
+        `SELECT ISNULL(MAX(CASE WHEN VSRL NOT LIKE '%[^0-9]%' THEN CAST(VSRL AS INT) END), 0) AS maxVsrl
+         FROM ACMASTER WITH (UPDLOCK, HOLDLOCK)`
+      );
+      const nextVsrl = String((maxVsrlResult.recordset[0]?.maxVsrl ?? 0) + 1);
+      const isReceipt = input.type === 'Receipt';
+      const vtype = isReceipt ? 'Receipt' : 'Payments';
+      const payType = isReceipt ? 'NR' : input.cashBankAc === 'CASH' ? 'CP' : 'BP';
+      const total = input.lines.reduce((sum, l) => sum + l.amount, 0);
+
+      await req
+        .input('ID', nextId)
+        .input('VSRL', nextVsrl)
+        .input('Dt', input.date)
+        .input('VType', vtype)
+        .input('Narration', input.narration)
+        .input('ACTEMP', input.cashBankAc)
+        .input('PayType', payType)
+        .input('Chq', input.chq ?? '').query(`
+          INSERT INTO ACMASTER (ID, VSRL, BranchID, DATE, VTYPE, NARRATION, ACTEMP, PAYTYPE, CHQ, POSTED, Checked, AutoPost, Printed, Edited, TempVoucher, PackingDocNo, PDC, DEPOCODE)
+          VALUES (@ID, @VSRL, 0, @Dt, @VType, @Narration, @ACTEMP, @PayType, @Chq, 0, 0, 0, 0, 0, 0, 0, 0, '')
+        `);
+
+      const cashVac = input.lines.length === 1 ? input.lines[0].ac : '000000';
+      await new mssql.Request(transaction)
+        .input('ID', nextId)
+        .input('VSRL', nextVsrl)
+        .input('AC', input.cashBankAc)
+        .input('Dt', input.date)
+        .input('Debt', isReceipt ? total : 0)
+        .input('Cred', isReceipt ? 0 : total)
+        .input('Vac', cashVac)
+        .input('Lnarration', input.narration).query(`
+          INSERT INTO ACDETAILS (ID, VSRL, AC, DATE, DEBT, CRED, VAC, OnAc, Lnarration, GroupID)
+          VALUES (@ID, @VSRL, @AC, @Dt, @Debt, @Cred, @Vac, 'O', @Lnarration, 0)
+        `);
+
+      for (const line of input.lines) {
+        await new mssql.Request(transaction)
+          .input('ID', nextId)
+          .input('VSRL', nextVsrl)
+          .input('AC', line.ac)
+          .input('Dt', input.date)
+          .input('Debt', isReceipt ? 0 : line.amount)
+          .input('Cred', isReceipt ? line.amount : 0)
+          .input('Vac', input.cashBankAc)
+          .input('Lnarration', line.description ?? '').query(`
+            INSERT INTO ACDETAILS (ID, VSRL, AC, DATE, DEBT, CRED, VAC, OnAc, Lnarration, GroupID)
+            VALUES (@ID, @VSRL, @AC, @Dt, @Debt, @Cred, @Vac, 'O', @Lnarration, 0)
+          `);
+      }
+
+      return { id: nextId, vsrl: nextVsrl };
+    });
   }
 }
 

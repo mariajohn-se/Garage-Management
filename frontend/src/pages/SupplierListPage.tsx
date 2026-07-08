@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supplierApi, Supplier } from '../api/partyApi';
 import { ApiError } from '../api/client';
@@ -13,8 +13,10 @@ export function SupplierListPage() {
   const [filters, setFilters] = useState({ name: '', phone: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  function load() {
     setLoading(true);
     setError(null);
     supplierApi
@@ -25,8 +27,9 @@ export function SupplierListPage() {
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load suppliers.'))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }
+
+  useEffect(load, [filters, page]);
 
   async function handleExport() {
     try {
@@ -43,9 +46,27 @@ export function SupplierListPage() {
     }
   }
 
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+      const result = await supplierApi.importCsv(text);
+      setBanner(
+        `Imported ${result.created} supplier(s).${result.skipped.length ? ` Skipped: ${result.skipped.map((s) => `${s.name} (${s.reason})`).join(', ')}` : ''}`
+      );
+      load();
+    } catch (err) {
+      setBanner(err instanceof ApiError ? err.message : 'Import failed.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   return (
     <div className="section-card">
       <h2>Suppliers</h2>
+      {banner && <div className="alert alert-success">{banner}</div>}
       <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>
         The Active flag's polarity could not be confirmed from production data (see README.md), so status is not shown
         or filterable here.
@@ -74,6 +95,10 @@ export function SupplierListPage() {
           <Link className="btn-primary" data-testid="supp-add" to="/suppliers/new">
             + New Supplier
           </Link>
+          <button className="btn-outline" data-testid="supp-import" onClick={() => fileInputRef.current?.click()}>
+            Import
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportFile} />
           <button className="btn-outline" data-testid="supp-export" onClick={handleExport}>
             Export
           </button>

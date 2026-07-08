@@ -222,6 +222,25 @@ export class SalesRepository {
   async salesMarginDetails(fromDt: string, toDt: string): Promise<Record<string, unknown>[]> {
     return callProcedure('spSalesMarginDetails', { fromDt, toDt, bill: '0' });
   }
+
+  /**
+   * VERIFIED (2026-07-08): two similarly-named real procedures exist - `SPSALESANALYSIS`
+   * (`@DTFROM`/`@DTTO`) times out (15s+) against real data, but `SPSALESANALYSISREPORT`
+   * (`@FROMDATE`/`@TODATE`, not in DB_CONNECTION_SPEC_v12.md's catalog) runs fine and returns
+   * real per-bill rows (customer/vehicle/staff/paid amount) - 1135 rows for a 2011 date range.
+   * Uses the working one; the timing-out one is left unused, same treatment as the collation-bug
+   * procedures found in earlier phases.
+   */
+  async salesAnalysisReport(fromDate: string, toDate: string): Promise<Record<string, unknown>[]> {
+    return callProcedure('SPSALESANALYSISREPORT', { FROMDATE: fromDate, TODATE: toDate });
+  }
+
+  /** Real, undocumented SP (`spMonthlySplitSales`) found via INFORMATION_SCHEMA.ROUTINES search
+   *  for "Split" - verified live, returns real month/year/item-type sales split data. This is
+   *  the genuine real analog to the spec's "Sales Report Section Wise"/"split-invoice-summary". */
+  async monthlySplitSales(fromDate: string, toDate: string): Promise<Record<string, unknown>[]> {
+    return callProcedure('spMonthlySplitSales', { fromDate, toDate });
+  }
 }
 
 export const salesRepository = new SalesRepository();

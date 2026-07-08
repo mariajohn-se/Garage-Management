@@ -3,6 +3,7 @@ import { itemRepository } from '../repositories/ItemRepository';
 import { stockRepository } from '../repositories/StockRepository';
 import { logUserEvent } from '../auth/userlog';
 import { NotFoundError, ValidationError } from '../utils/errors';
+import { StockMovementInput } from '../models/Stock';
 
 export class InventoryService {
   async listItems(filters: { search?: string; category?: string; lowStock?: boolean; page: number; limit: number }) {
@@ -63,6 +64,44 @@ export class InventoryService {
 
   async reorderStatus(filters: { page: number; limit: number }) {
     return stockRepository.reorderStatus(filters);
+  }
+
+  async listGodowns() {
+    return stockRepository.listGodowns();
+  }
+
+  private validateMovement(input: StockMovementInput): void {
+    if (!input.stockDate) throw new ValidationError('Stock date is required.');
+    if (!input.lines?.length) throw new ValidationError('At least one line item is required.');
+    for (const line of input.lines) {
+      if (!line.itemCode?.trim()) throw new ValidationError('Every line requires an item.');
+      if (!line.qty || line.qty <= 0) throw new ValidationError('Every line requires a quantity greater than zero.');
+      if (!line.godownId?.trim()) throw new ValidationError('Every line requires a location.');
+    }
+  }
+
+  async createStockIn(req: Request, input: StockMovementInput) {
+    this.validateMovement(input);
+    const result = await stockRepository.createStockIn(input);
+    await logUserEvent(req, {
+      userId: req.user!.sub,
+      userName: req.user!.username,
+      action: 'Stock In Created',
+      remarks: `Stock in ${result.stockNo}, ${input.lines.length} line(s)`
+    });
+    return result;
+  }
+
+  async createStockOut(req: Request, input: StockMovementInput) {
+    this.validateMovement(input);
+    const result = await stockRepository.createStockOut(input);
+    await logUserEvent(req, {
+      userId: req.user!.sub,
+      userName: req.user!.username,
+      action: 'Stock Out Created',
+      remarks: `Stock out ${result.stockNo}, ${input.lines.length} line(s)`
+    });
+    return result;
   }
 }
 

@@ -1,5 +1,32 @@
+import mssql from 'mssql';
 import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { EstimationListItem, EstimationLine } from '../models/Job';
+
+export interface EstimationLineInput {
+  description: string;
+  qty: number;
+  unitPrice: number;
+  labourAmount: number;
+}
+
+export interface EstimationInput {
+  customerId: string;
+  vehicleId: number | null;
+  staffId: string | null;
+  billDate: string;
+  jobCardNo: string | null;
+  remarks: string | null;
+  addition: number;
+  less: number;
+  lines: EstimationLineInput[];
+}
+
+function computeTotals(lines: EstimationLineInput[], addition: number, less: number) {
+  const total = lines.reduce((sum, l) => sum + l.qty * l.unitPrice, 0);
+  const totLabour = lines.reduce((sum, l) => sum + l.labourAmount, 0);
+  const nett = total + totLabour + addition - less;
+  return { total, totLabour, nett };
+}
 
 /**
  * VERIFIED against the live Estimation01Sql view (32 columns, 5940 real rows). `ID` is the
@@ -11,8 +38,11 @@ interface EstimationRow {
   ID: number;
   EstimationNo: string | null;
   JObCardNo: string | null;
+  CustomerId: string | null;
   custname: string | null;
+  VehicleId: number | null;
   VehNo: string | null;
+  StaffId: string | null;
   StaffName: string | null;
   BillDt: string | null;
   Total: number | null;
@@ -36,8 +66,11 @@ function toEstimation(row: EstimationRow): EstimationListItem {
     id: row.ID,
     estimationNo: row.EstimationNo,
     jobCardNo: row.JObCardNo,
+    customerId: row.CustomerId,
     customerName: row.custname,
+    vehicleId: row.VehicleId,
     vehNo: row.VehNo,
+    staffId: row.StaffId,
     staffName: row.StaffName,
     billDate: row.BillDt,
     total: row.Total,
@@ -50,11 +83,20 @@ function toEstimation(row: EstimationRow): EstimationListItem {
   };
 }
 
-const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, custname, VehNo, StaffName, BillDt, Total, totlabour, nett, Approved, Remarks,
+const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, CustomerId, custname, VehicleId, VehNo, StaffId, StaffName, BillDt, Total, totlabour, nett, Approved, Remarks,
   (SELECT TOP 1 ApprovedDt FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionDt,
   (SELECT TOP 1 ServiceComment FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionComment`;
 
 export class EstimationRepository {
+  /** Backs the advisor picker on the Estimation create/edit form - StaffSql (Ocode/Description) is the real source of Estimation01.StaffId/StaffName, a separate ID space from EmployeeDet/AssignedJobs' empId. */
+  async searchStaff(query: string): Promise<Array<{ ocode: string; name: string }>> {
+    const rows = await queryView<{ Ocode: string; Description: string }>(
+      `SELECT TOP 20 Ocode, Description FROM StaffSql WHERE Description LIKE @q ORDER BY Description`,
+      { q: `%${query}%` }
+    );
+    return rows.map((r) => ({ ocode: r.Ocode, name: r.Description }));
+  }
+
   async list(filters: {
     customerName?: string;
     vehNo?: string;
@@ -165,6 +207,120 @@ export class EstimationRepository {
           VALUES (@ID, '01', GETDATE(), @CustId, @Ordr, @Approved, GETDATE(), @ApprovedUser, @ServiceComment)
         `);
     });
+  }
+
+  /**
+   * VERIFIED (2026-07-08): EstimationNo is a plain MAX+1 integer sequence stored as nvarchar
+   * (same pattern as Ordr on SalesOrdr01), independent of ID. JObCardNo is NOT its own sequence -
+   * spot-checking real rows shows non-'0' values match real SalesOrdr01.Ordr numbers, so it's an
+   * optional reference to an existing sales order/job card, defaulted to '0' (unlinked) when the
+   * estimation is prepared before a job card exists - never generated here.
+   * VERIFIED FINDING: Estimation02.Sl looked like an app-generated MAX+1 counter from sample
+   * data (large numbers shared across rows), but `sys.columns.is_identity` confirms it's a real
+   * SQL Server IDENTITY column - inserting it explicitly throws "Cannot insert explicit value
+   * for identity column ... IDENTITY_INSERT is set to OFF". Left off the INSERT; the DB assigns it.
+   */
+  async create(input: EstimationInput): Promise<number> {
+    return withNextNumericId('Estimation01', 'ID', async (nextId, req, transaction) => {
+      const maxEstNoResult = await req.query(
+        `SELECT ISNULL(MAX(CASE WHEN EstimationNo NOT LIKE '%[^0-9]%' THEN CAST(EstimationNo AS INT) END), 0) AS maxEstNo
+         FROM Estimation01 WITH (UPDLOCK, HOLDLOCK)`
+      );
+      const nextEstNo = String((maxEstNoResult.recordset[0]?.maxEstNo ?? 0) + 1);
+      const { total, totLabour, nett } = computeTotals(input.lines, input.addition, input.less);
+
+      await req
+        .input('ID', nextId)
+        .input('Yr', new Date(input.billDate).getFullYear().toString().slice(-2))
+        .input('EstimationNo', nextEstNo)
+        .input('BillDt', input.billDate)
+        .input('CustomerId', input.customerId)
+        .input('VehicleId', input.vehicleId)
+        .input('StaffId', input.staffId)
+        .input('Addition', input.addition)
+        .input('Less', input.less)
+        .input('Remarks', input.remarks)
+        .input('Total', total)
+        .input('TotLabour', totLabour)
+        .input('Nett', nett)
+        .input('JObCardNo', input.jobCardNo ?? '0').query(`
+          INSERT INTO Estimation01 (ID, Yr, ccode, EstimationNo, BillDt, CustomerId, VehicleId, StaffId, Addition, Less, Remarks, Total, totlabour, nett, JObCardNo)
+          VALUES (@ID, @Yr, '01', @EstimationNo, @BillDt, @CustomerId, @VehicleId, @StaffId, @Addition, @Less, @Remarks, @Total, @TotLabour, @Nett, @JObCardNo)
+        `);
+
+      for (const line of input.lines) {
+        await new mssql.Request(transaction)
+          .input('ID', nextId)
+          .input('Description', line.description)
+          .input('Qty', line.qty)
+          .input('UnitPrice', line.unitPrice)
+          .input('LabourAmt', line.labourAmount).query(`
+            INSERT INTO Estimation02 (ID, Description, Qty, UnitPrice, labouramt, Sort)
+            VALUES (@ID, @Description, @Qty, @UnitPrice, @LabourAmt, 0)
+          `);
+      }
+
+      return nextId;
+    });
+  }
+
+  /**
+   * Line edits always replace the full set (delete+reinsert), same pattern as
+   * OrderRepository.update() - Estimation02 has no natural per-line identity to diff against.
+   * Addition/Less must be supplied whenever lines are, since Total/totlabour/nett are recomputed
+   * together; the frontend edit form always submits all of them as one unit, never partially.
+   */
+  async update(
+    id: number,
+    changes: {
+      vehicleId?: number | null;
+      staffId?: string | null;
+      remarks?: string | null;
+      addition?: number;
+      less?: number;
+      lines?: EstimationLineInput[];
+    }
+  ): Promise<void> {
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { id };
+    if (changes.vehicleId !== undefined) {
+      sets.push('VehicleId = @vehicleId');
+      params.vehicleId = changes.vehicleId;
+    }
+    if (changes.staffId !== undefined) {
+      sets.push('StaffId = @staffId');
+      params.staffId = changes.staffId;
+    }
+    if (changes.remarks !== undefined) {
+      sets.push('Remarks = @remarks');
+      params.remarks = changes.remarks;
+    }
+    if (changes.lines) {
+      const addition = changes.addition ?? 0;
+      const less = changes.less ?? 0;
+      const { total, totLabour, nett } = computeTotals(changes.lines, addition, less);
+      sets.push('Addition = @addition', 'Less = @less', 'Total = @total', 'totlabour = @totLabour', 'nett = @nett');
+      params.addition = addition;
+      params.less = less;
+      params.total = total;
+      params.totLabour = totLabour;
+      params.nett = nett;
+    }
+
+    if (sets.length) {
+      await executeWrite(`UPDATE Estimation01 SET ${sets.join(', ')} WHERE ID = @id`, params);
+    }
+
+    if (changes.lines) {
+      await executeWrite('DELETE FROM Estimation02 WHERE ID = @id', { id });
+      for (const line of changes.lines) {
+        await executeWrite(
+          `INSERT INTO Estimation02 (ID, Description, Qty, UnitPrice, labouramt, Sort)
+           VALUES (@id, @description, @qty, @unitPrice, @labourAmount, 0)`,
+          { id, description: line.description, qty: line.qty, unitPrice: line.unitPrice, labourAmount: line.labourAmount }
+        );
+      }
+    }
   }
 }
 

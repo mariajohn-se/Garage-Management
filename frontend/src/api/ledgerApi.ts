@@ -48,6 +48,19 @@ export interface BulkPdcEntry {
   narration: string | null;
 }
 
+export interface JournalVoucherLineInput {
+  ac: string;
+  debit: number;
+  credit: number;
+  description?: string;
+}
+
+export interface JournalVoucherInput {
+  date: string;
+  narration: string;
+  lines: JournalVoucherLineInput[];
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -82,5 +95,8 @@ export const ledgerApi = {
   listBulkPdcReceipts: (filters: { page?: number; limit?: number }) =>
     apiRequest<Paged<BulkPdcEntry>>(`/ledger/bulk-pdc-receipts${qs(filters)}`),
   listBulkPdcs: (filters: { page?: number; limit?: number }) =>
-    apiRequest<Paged<BulkPdcEntry>>(`/ledger/bulk-pdcs${qs(filters)}`)
+    apiRequest<Paged<BulkPdcEntry>>(`/ledger/bulk-pdcs${qs(filters)}`),
+
+  createJournalVoucher: (input: JournalVoucherInput) =>
+    apiRequest<{ id: number; vsrl: string }>('/ledger/journal-vouchers', { method: 'POST', body: input })
 };

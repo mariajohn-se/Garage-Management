@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { estimationApi } from '../api/jobApi';
 import { ApiError } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
@@ -52,9 +52,18 @@ export function EstimationDetailPage() {
   if (error && !estimation) return <div className="section-card error-state">{error}</div>;
   if (!estimation) return null;
 
+  const isLinked = !!estimation.jobCardNo && estimation.jobCardNo !== '0';
+
   return (
     <div className="section-card" style={{ maxWidth: 700 }}>
-      <h2>Estimation {estimation.jobCardNo}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Estimation {estimation.jobCardNo}</h2>
+        {!estimation.approved && (
+          <Link className="btn-outline" to={`/estimations/${estimation.id}/edit`}>
+            Edit
+          </Link>
+        )}
+      </div>
       {banner && <div className="alert alert-success">{banner}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -130,7 +139,14 @@ export function EstimationDetailPage() {
         </tbody>
       </table>
 
-      {canApprove && !estimation.approved && (
+      {canApprove && !estimation.approved && !isLinked && (
+        <div className="alert alert-error" style={{ marginTop: 'var(--space-6)' }}>
+          This estimation is not linked to a job card yet - link it to a job card before it can be approved or
+          rejected.
+        </div>
+      )}
+
+      {canApprove && !estimation.approved && isLinked && (
         <div style={{ marginTop: 'var(--space-6)' }}>
           <div className="form-group">
             <label htmlFor="est-approval-comment">Comment (required to reject)</label>

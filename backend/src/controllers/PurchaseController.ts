@@ -115,10 +115,11 @@ export class PurchaseController {
 
   async listDeliveryOrders(req: Request, res: Response, next: NextFunction) {
     try {
-      const { supplierName } = req.query;
+      const { supplierName, pdoNo } = req.query;
       res.json(
         await purchaseService.listDeliveryOrders({
           supplierName: supplierName as string | undefined,
+          pdoNo: pdoNo as string | undefined,
           ...parsePaging(req)
         })
       );

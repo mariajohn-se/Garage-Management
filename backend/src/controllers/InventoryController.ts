@@ -105,6 +105,36 @@ export class InventoryController {
       next(err);
     }
   }
+
+  async listGodowns(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await inventoryService.listGodowns());
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createStockIn(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { stockDate, remarks, lines } = req.body ?? {};
+      res.status(201).json(
+        await inventoryService.createStockIn(req, { stockDate, remarks: remarks || null, lines: Array.isArray(lines) ? lines : [] })
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createStockOut(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { stockDate, remarks, lines } = req.body ?? {};
+      res.status(201).json(
+        await inventoryService.createStockOut(req, { stockDate, remarks: remarks || null, lines: Array.isArray(lines) ? lines : [] })
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const inventoryController = new InventoryController();

@@ -51,6 +51,19 @@ export interface ReorderStatusItem {
   reorderLevel: number | null;
 }
 
+export interface StockMovementLineInput {
+  itemCode: string;
+  qty: number;
+  rate: number;
+  godownId: string;
+}
+
+export interface StockMovementInput {
+  stockDate: string;
+  remarks: string | null;
+  lines: StockMovementLineInput[];
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -71,8 +84,13 @@ export const inventoryApi = {
 
   listStockIn: (filters: { page?: number; limit?: number }) =>
     apiRequest<Paged<StockEntry>>(`/inventory/stock-in${qs(filters)}`),
+  createStockIn: (input: StockMovementInput) =>
+    apiRequest<{ id: number; stockNo: string }>('/inventory/stock-in', { method: 'POST', body: input }),
   listStockOut: (filters: { page?: number; limit?: number }) =>
     apiRequest<Paged<StockEntry>>(`/inventory/stock-out${qs(filters)}`),
+  createStockOut: (input: StockMovementInput) =>
+    apiRequest<{ id: number; stockNo: string }>('/inventory/stock-out', { method: 'POST', body: input }),
+  listGodowns: () => apiRequest<Array<{ ocode: string; name: string }>>('/inventory/godowns'),
   listTransactions: (filters: { itemCode?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<StockTransaction>>(`/inventory/transactions${qs(filters)}`),
   currentStock: (filters: { search?: string; page?: number; limit?: number }) =>

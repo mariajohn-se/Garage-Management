@@ -1,5 +1,13 @@
-import { queryView, queryViewPaginated, callProcedure, executeWrite } from '../db/callProcedure';
-import { AccountHead, TrialBalanceRow, TrialBalanceSummary, BulkJournalEntry, BulkPdcEntry } from '../models/Ledger';
+import mssql from 'mssql';
+import { queryView, queryViewPaginated, callProcedure, executeWrite, withNextNumericId } from '../db/callProcedure';
+import {
+  AccountHead,
+  TrialBalanceRow,
+  TrialBalanceSummary,
+  BulkJournalEntry,
+  BulkPdcEntry,
+  JournalVoucherInput
+} from '../models/Ledger';
 import { NotImplementedError } from '../utils/errors';
 
 /**
@@ -219,6 +227,71 @@ export class LedgerRepository {
       })),
       total: totalRows[0]?.cnt ?? 0
     };
+  }
+
+  /**
+   * VERIFIED (2026-07-08) against real historical "Journals"-type ACMASTER/ACDETAILS rows -
+   * this is the first direct general-ledger write path in this codebase (no real posting
+   * procedure exists anywhere; confirmed absent in Phase 13's audit). Deliberately minimal per
+   * explicit user sign-off:
+   * - CurBal is left unset (0) on every line - real historical ACDETAILS rows have it at 0 on
+   *   32% of all 176,659 real rows with no clean chronological pattern (back-dated entries are
+   *   common), so it is not a reliably-computed running balance to reverse-engineer; the app's
+   *   real balance displays already compute live via SUM, not by trusting this column.
+   * - ACTEMP='000000' on the header - a real, confirmed ACHEAD row (`DESCRIPTION: '(As Per
+   *   Details)'`), exactly the sentinel every real multi-line Journals voucher uses.
+   * - VAC (each line's "contra account") is only populated for the simple, cleanly-verified
+   *   2-line case (debit account = other line's AC, and vice versa, matching every real 2-line
+   *   example checked). For 3+ lines, real historical vouchers don't show one consistent
+   *   pattern, so VAC falls back to the same '000000' sentinel as the header rather than
+   *   guessing - a documented judgment call, not a confirmed business rule.
+   * - Only the well-understood columns are set (BranchID=0, matching the only real Branch row;
+   *   VTYPE='Journals'; GroupID=0, matching 92% of all 176,659 real ACDETAILS rows and every
+   *   verified real journal example - Groups.GroupID=0 is 'TEM', the same default company/branch
+   *   used everywhere else in this schema). Undocumented fields (PAYTYPE, TRANTYPE, PDC/cheque
+   *   staging, Temp/TempVoucher, AutoPost, Posted) are left at safe zero/null defaults - this
+   *   method does not support Receipt/Payment vouchers or cheque handling, by explicit scope
+   *   decision. GroupID is a real INNER JOIN key on ACDETAILSSQL (to the `Groups` table) - a
+   *   missed/wrong value here would make new lines invisible in Voucher Detail exactly like the
+   *   VehicleId/StaffId finding in Phase 5's Estimation work, so this was checked before, not
+   *   after, shipping.
+   */
+  async createJournalVoucher(input: JournalVoucherInput): Promise<{ id: number; vsrl: string }> {
+    return withNextNumericId('ACMASTER', 'ID', async (nextId, req, transaction) => {
+      const maxVsrlResult = await req.query(
+        `SELECT ISNULL(MAX(CASE WHEN VSRL NOT LIKE '%[^0-9]%' THEN CAST(VSRL AS INT) END), 0) AS maxVsrl
+         FROM ACMASTER WITH (UPDLOCK, HOLDLOCK)`
+      );
+      const nextVsrl = String((maxVsrlResult.recordset[0]?.maxVsrl ?? 0) + 1);
+
+      await req
+        .input('ID', nextId)
+        .input('VSRL', nextVsrl)
+        .input('Dt', input.date)
+        .input('Narration', input.narration).query(`
+          INSERT INTO ACMASTER (ID, VSRL, BranchID, DATE, VTYPE, NARRATION, ACTEMP, POSTED, Checked, AutoPost, Printed, Edited, TempVoucher, PackingDocNo, PDC)
+          VALUES (@ID, @VSRL, 0, @Dt, 'Journals', @Narration, '000000', 0, 0, 0, 0, 0, 0, 0, 0)
+        `);
+
+      const isSimplePair = input.lines.length === 2;
+      for (const line of input.lines) {
+        const vac = isSimplePair ? input.lines.find((l) => l !== line)!.ac : '000000';
+        await new mssql.Request(transaction)
+          .input('ID', nextId)
+          .input('VSRL', nextVsrl)
+          .input('AC', line.ac)
+          .input('Dt', input.date)
+          .input('DEBT', line.debit)
+          .input('CRED', line.credit)
+          .input('VAC', vac)
+          .input('Lnarration', line.description ?? '').query(`
+            INSERT INTO ACDETAILS (ID, VSRL, AC, DATE, DEBT, CRED, VAC, OnAc, Lnarration, GroupID)
+            VALUES (@ID, @VSRL, @AC, @Dt, @DEBT, @CRED, @VAC, 'O', @Lnarration, 0)
+          `);
+      }
+
+      return { id: nextId, vsrl: nextVsrl };
+    });
   }
 }
 

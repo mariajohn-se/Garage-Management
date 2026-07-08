@@ -80,6 +80,21 @@ export interface VoucherActionLogItem {
   status: string | null;
 }
 
+export interface ReceiptPaymentLineInput {
+  ac: string;
+  amount: number;
+  description?: string;
+}
+
+export interface ReceiptPaymentVoucherInput {
+  type: 'Receipt' | 'Payment';
+  date: string;
+  cashBankAc: string;
+  narration: string;
+  chq?: string;
+  lines: ReceiptPaymentLineInput[];
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -108,5 +123,8 @@ export const bankingApi = {
   filterAccountEntries: (dateFrom: string, dateTo: string, ac?: string) =>
     apiRequest<AccountFilterItem[]>(`/banking/account-filter${qs({ dateFrom, dateTo, ac })}`),
   voucherActionLog: (filters: { vsrl?: string; page?: number; limit?: number }) =>
-    apiRequest<Paged<VoucherActionLogItem>>(`/banking/action-log${qs(filters)}`)
+    apiRequest<Paged<VoucherActionLogItem>>(`/banking/action-log${qs(filters)}`),
+
+  createReceiptPaymentVoucher: (input: ReceiptPaymentVoucherInput) =>
+    apiRequest<{ id: number; vsrl: string }>('/vouchers/receipt-payment', { method: 'POST', body: input })
 };

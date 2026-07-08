@@ -97,6 +97,24 @@ export class BankingController {
       next(err);
     }
   }
+
+  async createReceiptPaymentVoucher(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { type, date, cashBankAc, narration, chq, lines } = req.body ?? {};
+      res.status(201).json(
+        await bankingService.createReceiptPaymentVoucher(req, {
+          type,
+          date,
+          cashBankAc,
+          narration,
+          chq: chq || undefined,
+          lines: Array.isArray(lines) ? lines : []
+        })
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const bankingController = new BankingController();

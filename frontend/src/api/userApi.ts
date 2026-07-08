@@ -83,6 +83,9 @@ export const userApi = {
     return apiRequest<Employee[]>(`/employees${qs.toString() ? `?${qs}` : ''}`);
   },
 
+  employeeHelp: (query: string) =>
+    apiRequest<Array<{ empId: number; name: string }>>(`/employees/help?q=${encodeURIComponent(query)}`),
+
   legacyUsers: () => apiRequest<LegacyUserRecord[]>('/legacy-users'),
 
   actionLog: (filters: { userId?: string; dateFrom?: string; dateTo?: string; eventType?: string }) => {

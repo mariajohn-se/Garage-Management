@@ -28,7 +28,20 @@ export function VoucherListPage() {
 
   return (
     <div className="section-card">
-      <h2>Vouchers</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+        <h2>Vouchers</h2>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <Link className="btn-outline" to="/banking/vouchers/new/receipt">
+            New Receipt
+          </Link>
+          <Link className="btn-outline" to="/banking/vouchers/new/payment">
+            New Payment
+          </Link>
+          <Link className="btn-primary" style={{ width: 'auto' }} to="/ledger/journal-vouchers/new">
+            New Journal Voucher
+          </Link>
+        </div>
+      </div>
 
       <div className="filter-bar">
         <input

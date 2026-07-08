@@ -31,6 +31,22 @@ interface EmployeeRow {
 }
 
 export class EmployeeRepository {
+  /**
+   * Backs the staff-assignment picker (Assign Staff on AssignedJobsPage), which needs
+   * EmpId/EmpName only - not the Department/Section columns that EmployeeSql's broken joins
+   * drop to 0 rows for every real employee (see the class-level note above). AssignedJobsSql
+   * itself resolves EmpName via `employeeDet e ON e.EmpId = j.EmpId` (a plain join straight to
+   * this base table, not through EmployeeSql), so reading EmployeeDet directly here for a
+   * search box mirrors what the real view already does, rather than hand-joining anything new.
+   */
+  async search(query: string): Promise<Array<{ empId: number; name: string }>> {
+    const rows = await queryView<{ EmpId: number; EmpName: string }>(
+      `SELECT TOP 20 EmpId, EmpName FROM employeeDet WHERE EmpName LIKE @q ORDER BY EmpName`,
+      { q: `%${query}%` }
+    );
+    return rows.map((r) => ({ empId: r.EmpId, name: r.EmpName }));
+  }
+
   async list(filters: { name?: string; department?: string; section?: string }): Promise<Employee[]> {
     const conditions: string[] = [];
     const params: Record<string, unknown> = {};

@@ -32,6 +32,8 @@ export type UserLogAction =
   | 'Remark Added'
   | 'Remark Updated'
   | 'Remark Deleted'
+  | 'Estimation Created'
+  | 'Estimation Updated'
   | 'Estimation Approved'
   | 'Estimation Rejected'
   | 'Job Status Changed'
@@ -56,8 +58,13 @@ export type UserLogAction =
   | 'Foreign Purchase Order Created'
   | 'Foreign Purchase Order Updated'
   | 'Item Updated'
+  | 'Stock In Created'
+  | 'Stock Out Created'
   | 'Voucher Verified'
   | 'Account Head Created'
+  | 'Journal Voucher Created'
+  | 'Receipt Voucher Created'
+  | 'Payment Voucher Created'
   | 'Account Head Updated'
   | 'Company Header Updated';
 

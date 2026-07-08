@@ -129,7 +129,7 @@ export const purchaseApi = {
   updateForeign: (id: number, changes: { suppId?: string; remarks?: string; items?: LineItem[] }) =>
     apiRequest<{ message: string }>(`/foreign-purchases/${id}`, { method: 'PUT', body: changes }),
 
-  listDeliveryOrders: (filters: { supplierName?: string; page?: number; limit?: number }) =>
+  listDeliveryOrders: (filters: { supplierName?: string; pdoNo?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<PurchaseDeliveryOrder>>(`/purchases/delivery-orders${qs(filters)}`),
   getDeliveryOrder: (id: number) => apiRequest<PurchaseDeliveryOrderDetail>(`/purchases/delivery-orders/${id}`),
 

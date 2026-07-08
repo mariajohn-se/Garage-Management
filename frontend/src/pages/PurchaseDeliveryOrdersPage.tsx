@@ -10,6 +10,7 @@ export function PurchaseDeliveryOrdersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [supplierName, setSupplierName] = useState('');
+  const [pdoNo, setPdoNo] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,20 +18,28 @@ export function PurchaseDeliveryOrdersPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listDeliveryOrders({ supplierName, page, limit: LIMIT })
+      .listDeliveryOrders({ supplierName, pdoNo, page, limit: LIMIT })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load purchase delivery orders. Please try again.'))
       .finally(() => setLoading(false));
-  }, [supplierName, page]);
+  }, [supplierName, pdoNo, page]);
 
   return (
     <div className="section-card">
       <h2>Purchase Delivery Orders</h2>
 
       <div className="filter-bar">
+        <input
+          placeholder="Search DO #..."
+          value={pdoNo}
+          onChange={(e) => {
+            setPage(1);
+            setPdoNo(e.target.value);
+          }}
+        />
         <input
           placeholder="Search supplier..."
           value={supplierName}

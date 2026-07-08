@@ -141,7 +141,7 @@ export class PurchaseService {
     });
   }
 
-  async listDeliveryOrders(filters: { supplierName?: string; page: number; limit: number }) {
+  async listDeliveryOrders(filters: { supplierName?: string; pdoNo?: string; page: number; limit: number }) {
     return purchaseRepository.listDeliveryOrders(filters);
   }
 

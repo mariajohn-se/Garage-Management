@@ -57,6 +57,23 @@ export class SupplierService {
       remarks: `Deleted supplier ${suppId}`
     });
   }
+
+  async bulkImportSuppliers(
+    req: Request,
+    rows: Array<Omit<Supplier, 'suppId' | 'activeFlag'>>
+  ): Promise<{ created: number; skipped: Array<{ name: string; reason: string }> }> {
+    let created = 0;
+    const skipped: Array<{ name: string; reason: string }> = [];
+    for (const row of rows) {
+      try {
+        await this.create(req, row);
+        created++;
+      } catch (err) {
+        skipped.push({ name: row.name, reason: (err as Error).message });
+      }
+    }
+    return { created, skipped };
+  }
 }
 
 export const supplierService = new SupplierService();

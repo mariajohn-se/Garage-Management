@@ -52,7 +52,9 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Sales Invoices', to: '/sales' },
       { label: 'Proformas', to: '/proformas' },
       { label: 'Sales Bill Report', to: '/reports/sales-bill', requires: 'privileged' },
-      { label: 'Sales Margin Details', to: '/reports/sales-margins', requires: 'privileged' }
+      { label: 'Sales Margin Details', to: '/reports/sales-margins', requires: 'privileged' },
+      { label: 'Sales Analysis', to: '/reports/sales-analysis', requires: 'privileged' },
+      { label: 'Sales Report - Section Wise', to: '/reports/sales-split', requires: 'privileged' }
     ]
   },
   {

@@ -75,6 +75,26 @@ export class SalesController {
       next(err);
     }
   }
+
+  async salesAnalysisReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fromDate, toDate } = req.query;
+      if (!fromDate || !toDate) throw new ValidationError('fromDate and toDate are required.');
+      res.json(await salesService.salesAnalysisReport(fromDate as string, toDate as string));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async monthlySplitSales(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fromDate, toDate } = req.query;
+      if (!fromDate || !toDate) throw new ValidationError('fromDate and toDate are required.');
+      res.json(await salesService.monthlySplitSales(fromDate as string, toDate as string));
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const salesController = new SalesController();

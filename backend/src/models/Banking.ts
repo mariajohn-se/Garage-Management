@@ -77,3 +77,18 @@ export interface VoucherActionLogItem {
   remarks: string | null;
   status: string | null;
 }
+
+export interface ReceiptPaymentLineInput {
+  ac: string;
+  amount: number;
+  description?: string;
+}
+
+export interface ReceiptPaymentVoucherInput {
+  type: 'Receipt' | 'Payment';
+  date: string;
+  cashBankAc: string;
+  narration: string;
+  chq?: string;
+  lines: ReceiptPaymentLineInput[];
+}

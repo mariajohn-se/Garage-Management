@@ -181,6 +181,15 @@ export class UserController {
     }
   }
 
+  async employeeHelp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { q } = req.query;
+      res.json(q ? await employeeRepository.search(q as string) : []);
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async employees(req: Request, res: Response, next: NextFunction) {
     try {
       const { name, department, section } = req.query;

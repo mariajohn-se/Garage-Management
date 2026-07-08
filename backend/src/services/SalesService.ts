@@ -60,6 +60,14 @@ export class SalesService {
   async salesMarginDetails(fromDt: string, toDt: string) {
     return salesRepository.salesMarginDetails(fromDt, toDt);
   }
+
+  async salesAnalysisReport(fromDate: string, toDate: string) {
+    return salesRepository.salesAnalysisReport(fromDate, toDate);
+  }
+
+  async monthlySplitSales(fromDate: string, toDate: string) {
+    return salesRepository.monthlySplitSales(fromDate, toDate);
+  }
 }
 
 export const salesService = new SalesService();

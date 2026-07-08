@@ -103,5 +103,9 @@ export const salesApi = {
   salesBillReport: (fromDate: string, toDate: string) =>
     apiRequest<Array<Record<string, unknown>>>(`/reports/sales-bill${qs({ fromDate, toDate })}`),
   salesMarginDetails: (fromDate: string, toDate: string) =>
-    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-margins${qs({ fromDate, toDate })}`)
+    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-margins${qs({ fromDate, toDate })}`),
+  salesAnalysisReport: (fromDate: string, toDate: string) =>
+    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-analysis${qs({ fromDate, toDate })}`),
+  monthlySplitSales: (fromDate: string, toDate: string) =>
+    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-split${qs({ fromDate, toDate })}`)
 };

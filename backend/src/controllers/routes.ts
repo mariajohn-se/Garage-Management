@@ -64,6 +64,7 @@ apiRouter.put('/users/:id/permissions', ...adminOnly, userController.setMenuPerm
 apiRouter.post('/users/import', ...adminOnly, userController.importUsers.bind(userController));
 apiRouter.get('/users/export', ...supervisorUp, userController.exportUsers.bind(userController));
 
+apiRouter.get('/employees/help', requireAuth, userController.employeeHelp.bind(userController));
 apiRouter.get('/employees', ...supervisorUp, userController.employees.bind(userController));
 apiRouter.get('/legacy-users', ...adminOnly, userController.legacyUsers.bind(userController));
 apiRouter.get('/action-logs', ...supervisorUp, userController.actionLog.bind(userController));
@@ -75,6 +76,7 @@ apiRouter.get('/customers', requireAuth, customerController.list.bind(customerCo
 apiRouter.get('/customers/help', requireAuth, customerController.help.bind(customerController));
 apiRouter.get('/customers/agewise', ...supervisorUp, customerController.agewise.bind(customerController));
 apiRouter.get('/customers/export', ...supervisorUp, customerController.exportCsv.bind(customerController));
+apiRouter.post('/customers/import', ...supervisorUp, customerController.importCsv.bind(customerController));
 apiRouter.post('/customers', requireAuth, customerController.create.bind(customerController));
 apiRouter.get('/customers/:custId', requireAuth, customerController.get.bind(customerController));
 apiRouter.put('/customers/:custId', requireAuth, customerController.update.bind(customerController));
@@ -83,6 +85,7 @@ apiRouter.delete('/customers/:custId', ...adminOnly, customerController.remove.b
 apiRouter.get('/suppliers', requireAuth, supplierController.list.bind(supplierController));
 apiRouter.get('/suppliers/help', requireAuth, supplierController.help.bind(supplierController));
 apiRouter.get('/suppliers/export', ...supervisorUp, supplierController.exportCsv.bind(supplierController));
+apiRouter.post('/suppliers/import', ...supervisorUp, supplierController.importCsv.bind(supplierController));
 apiRouter.post('/suppliers', requireAuth, supplierController.create.bind(supplierController));
 apiRouter.get('/suppliers/:suppId', requireAuth, supplierController.get.bind(supplierController));
 apiRouter.put('/suppliers/:suppId', requireAuth, supplierController.update.bind(supplierController));
@@ -112,8 +115,11 @@ apiRouter.put('/remarks/:id', requireAuth, remarksController.update.bind(remarks
 apiRouter.delete('/remarks/:id', ...supervisorUp, remarksController.remove.bind(remarksController));
 
 // --- Phase 5: Jobs, Work Orders & Estimation ---
+apiRouter.get('/estimations/staff/help', requireAuth, estimationController.staffHelp.bind(estimationController));
 apiRouter.get('/estimations', requireAuth, estimationController.list.bind(estimationController));
+apiRouter.post('/estimations', requireAuth, estimationController.create.bind(estimationController));
 apiRouter.get('/estimations/:id', requireAuth, estimationController.get.bind(estimationController));
+apiRouter.put('/estimations/:id', requireAuth, estimationController.update.bind(estimationController));
 apiRouter.put('/estimations/:id/approve', ...supervisorUp, estimationController.approve.bind(estimationController));
 
 apiRouter.get('/jobs/work-in-progress', requireAuth, jobController.listWorkInProgress.bind(jobController));
@@ -155,6 +161,8 @@ apiRouter.get('/sales', requireAuth, salesController.invoices.bind(salesControll
 apiRouter.get('/proformas', requireAuth, salesController.proformas.bind(salesController));
 apiRouter.get('/reports/sales-bill', ...supervisorUp, salesController.salesBillReport.bind(salesController));
 apiRouter.get('/reports/sales-margins', ...supervisorUp, salesController.salesMarginDetails.bind(salesController));
+apiRouter.get('/reports/sales-analysis', ...supervisorUp, salesController.salesAnalysisReport.bind(salesController));
+apiRouter.get('/reports/sales-split', ...supervisorUp, salesController.monthlySplitSales.bind(salesController));
 
 apiRouter.get('/items/help', requireAuth, itemController.help.bind(itemController));
 
@@ -215,8 +223,11 @@ apiRouter.get('/inventory/valuation', ...supervisorUp, inventoryController.stock
 apiRouter.get('/inventory/aging', ...supervisorUp, inventoryController.stockAging.bind(inventoryController));
 apiRouter.get('/inventory/reorder-status', requireAuth, inventoryController.reorderStatus.bind(inventoryController));
 apiRouter.get('/inventory/stock-in', requireAuth, inventoryController.listStockIn.bind(inventoryController));
+apiRouter.post('/inventory/stock-in', requireAuth, inventoryController.createStockIn.bind(inventoryController));
 apiRouter.get('/inventory/stock-out', requireAuth, inventoryController.listStockOut.bind(inventoryController));
+apiRouter.post('/inventory/stock-out', requireAuth, inventoryController.createStockOut.bind(inventoryController));
 apiRouter.get('/inventory/transactions', requireAuth, inventoryController.listTransactions.bind(inventoryController));
+apiRouter.get('/inventory/godowns', requireAuth, inventoryController.listGodowns.bind(inventoryController));
 
 apiRouter.get('/items', requireAuth, inventoryController.listItems.bind(inventoryController));
 apiRouter.get('/items/:itemCode', requireAuth, inventoryController.getItem.bind(inventoryController));
@@ -237,6 +248,11 @@ apiRouter.get(
 apiRouter.get('/banking/action-log', ...supervisorUp, bankingController.voucherActionLog.bind(bankingController));
 
 apiRouter.get('/vouchers', requireAuth, bankingController.listVouchers.bind(bankingController));
+apiRouter.post(
+  '/vouchers/receipt-payment',
+  ...supervisorUp,
+  bankingController.createReceiptPaymentVoucher.bind(bankingController)
+);
 apiRouter.get('/vouchers/:id', requireAuth, bankingController.getVoucher.bind(bankingController));
 
 // --- Phase 10: Ledger & Account Management, Vouchers & Bulk Journals ---
@@ -250,6 +266,7 @@ apiRouter.get(
   ledgerController.listBulkPdcReceipts.bind(ledgerController)
 );
 apiRouter.get('/ledger/bulk-pdcs', ...supervisorUp, ledgerController.listBulkPdcs.bind(ledgerController));
+apiRouter.post('/ledger/journal-vouchers', ...supervisorUp, ledgerController.createJournalVoucher.bind(ledgerController));
 
 apiRouter.get('/ledger/account-heads', requireAuth, ledgerController.listAccountHeads.bind(ledgerController));
 apiRouter.post('/ledger/account-heads', ...adminOnly, ledgerController.createAccountHead.bind(ledgerController));

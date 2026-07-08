@@ -8,8 +8,11 @@ export interface EstimationListItem {
   id: number;
   estimationNo: string | null;
   jobCardNo: string | null;
+  customerId: string | null;
   customerName: string | null;
+  vehicleId: number | null;
   vehNo: string | null;
+  staffId: string | null;
   staffName: string | null;
   billDate: string | null;
   total: number | null;

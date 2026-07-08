@@ -29,7 +29,12 @@ export function EstimationListPage() {
 
   return (
     <div className="section-card" data-testid="estimation-report-table">
-      <h2>Estimations</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Estimations</h2>
+        <Link className="btn-primary" style={{ width: 'auto' }} to="/estimations/new">
+          New Estimation
+        </Link>
+      </div>
 
       <div className="filter-bar">
         <input

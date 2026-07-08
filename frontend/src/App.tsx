@@ -30,6 +30,7 @@ import { AttachmentsPage } from './pages/AttachmentsPage';
 import { RemarksReportPage } from './pages/RemarksReportPage';
 import { EstimationListPage } from './pages/EstimationListPage';
 import { EstimationDetailPage } from './pages/EstimationDetailPage';
+import { EstimationFormPage } from './pages/EstimationFormPage';
 import { JobListPage } from './pages/JobListPage';
 import { WorkInProgressPage } from './pages/WorkInProgressPage';
 import { AssignedJobsPage } from './pages/AssignedJobsPage';
@@ -53,6 +54,8 @@ import { OrderHelpPage } from './pages/OrderHelpPage';
 import { OrderCustomerChangePage } from './pages/OrderCustomerChangePage';
 import { SalesBillReportPage } from './pages/SalesBillReportPage';
 import { SalesMarginReportPage } from './pages/SalesMarginReportPage';
+import { SalesAnalysisReportPage } from './pages/SalesAnalysisReportPage';
+import { SalesSplitReportPage } from './pages/SalesSplitReportPage';
 import { LocalPurchaseFormPage } from './pages/LocalPurchaseFormPage';
 import { ForeignPurchaseFormPage } from './pages/ForeignPurchaseFormPage';
 import { LPODetailsReportPage } from './pages/LPODetailsReportPage';
@@ -61,12 +64,15 @@ import { ItemListPage } from './pages/ItemListPage';
 import { ItemDetailPage } from './pages/ItemDetailPage';
 import { StockInPage } from './pages/StockInPage';
 import { StockOutPage } from './pages/StockOutPage';
+import { StockMovementFormPage } from './pages/StockMovementFormPage';
 import { StockMovementsPage } from './pages/StockMovementsPage';
 import { CurrentStockPage } from './pages/CurrentStockPage';
 import { ReorderStatusPage } from './pages/ReorderStatusPage';
 import { StockValuationReportPage } from './pages/StockValuationReportPage';
 import { StockAgingReportPage } from './pages/StockAgingReportPage';
 import { VoucherListPage } from './pages/VoucherListPage';
+import { JournalVoucherFormPage } from './pages/JournalVoucherFormPage';
+import { ReceiptPaymentFormPage } from './pages/ReceiptPaymentFormPage';
 import { VoucherDetailPage } from './pages/VoucherDetailPage';
 import { CashBankBookPage } from './pages/CashBankBookPage';
 import { VoucherVerificationPage } from './pages/VoucherVerificationPage';
@@ -216,7 +222,9 @@ export function App() {
             />
 
             <Route path="/estimations" element={<EstimationListPage />} />
+            <Route path="/estimations/new" element={<EstimationFormPage />} />
             <Route path="/estimations/:estimationId" element={<EstimationDetailPage />} />
+            <Route path="/estimations/:estimationId/edit" element={<EstimationFormPage />} />
             <Route path="/jobs" element={<JobListPage />} />
             <Route path="/jobs/work-status" element={<WorkInProgressPage />} />
             <Route path="/jobs/assigned-jobs" element={<AssignedJobsPage />} />
@@ -262,6 +270,22 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/reports/sales-analysis"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <SalesAnalysisReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/sales-split"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <SalesSplitReportPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route path="/purchases/local" element={<LocalPurchaseListPage />} />
             <Route path="/purchases/local/new" element={<LocalPurchaseFormPage />} />
@@ -295,7 +319,9 @@ export function App() {
             <Route path="/inventory/items" element={<ItemListPage />} />
             <Route path="/inventory/items/:itemCode" element={<ItemDetailPage />} />
             <Route path="/inventory/stock-in" element={<StockInPage />} />
+            <Route path="/inventory/stock-in/new" element={<StockMovementFormPage kind="in" />} />
             <Route path="/inventory/stock-out" element={<StockOutPage />} />
+            <Route path="/inventory/stock-out/new" element={<StockMovementFormPage kind="out" />} />
             <Route path="/inventory/movements" element={<StockMovementsPage />} />
             <Route path="/inventory/current-stock" element={<CurrentStockPage />} />
             <Route path="/inventory/reorder-status" element={<ReorderStatusPage />} />
@@ -318,6 +344,22 @@ export function App() {
 
             <Route path="/banking/vouchers" element={<VoucherListPage />} />
             <Route path="/banking/vouchers/:id" element={<VoucherDetailPage />} />
+            <Route
+              path="/ledger/journal-vouchers/new"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <JournalVoucherFormPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/banking/vouchers/new/:type"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <ReceiptPaymentFormPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/banking/cash-bank-book"
               element={

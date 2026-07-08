@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { inventoryApi, StockEntry } from '../api/inventoryApi';
 import { Pagination } from '../components/Pagination';
 
@@ -26,7 +27,12 @@ export function StockOutPage() {
 
   return (
     <div className="section-card">
-      <h2>Stock Out</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2>Stock Out</h2>
+        <Link className="btn-primary" style={{ width: 'auto' }} to="/inventory/stock-out/new">
+          New Stock Out
+        </Link>
+      </div>
 
       {error && <div className="error-state">{error}</div>}
 

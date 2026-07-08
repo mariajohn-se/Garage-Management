@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { customerApi, Customer } from '../api/partyApi';
 import { ApiError } from '../api/client';
@@ -13,8 +13,10 @@ export function CustomerListPage() {
   const [filters, setFilters] = useState({ name: '', phone: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  function load() {
     setLoading(true);
     setError(null);
     customerApi
@@ -25,8 +27,9 @@ export function CustomerListPage() {
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load customers.'))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }
+
+  useEffect(load, [filters, page]);
 
   async function handleExport() {
     try {
@@ -43,9 +46,27 @@ export function CustomerListPage() {
     }
   }
 
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+      const result = await customerApi.importCsv(text);
+      setBanner(
+        `Imported ${result.created} customer(s).${result.skipped.length ? ` Skipped: ${result.skipped.map((s) => `${s.name} (${s.reason})`).join(', ')}` : ''}`
+      );
+      load();
+    } catch (err) {
+      setBanner(err instanceof ApiError ? err.message : 'Import failed.');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
   return (
     <div className="section-card">
       <h2>Customers</h2>
+      {banner && <div className="alert alert-success">{banner}</div>}
 
       <div className="filter-bar">
         <input
@@ -82,6 +103,10 @@ export function CustomerListPage() {
           <Link className="btn-primary" data-testid="cust-add" to="/customers/new">
             + New Customer
           </Link>
+          <button className="btn-outline" data-testid="cust-import" onClick={() => fileInputRef.current?.click()}>
+            Import
+          </button>
+          <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportFile} />
           <button className="btn-outline" data-testid="cust-export" onClick={handleExport}>
             Export
           </button>

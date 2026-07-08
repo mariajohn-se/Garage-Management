@@ -45,3 +45,16 @@ export interface BulkPdcEntry {
   curBal: number | null;
   narration: string | null;
 }
+
+export interface JournalVoucherLineInput {
+  ac: string;
+  debit: number;
+  credit: number;
+  description?: string;
+}
+
+export interface JournalVoucherInput {
+  date: string;
+  narration: string;
+  lines: JournalVoucherLineInput[];
+}
