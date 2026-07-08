@@ -72,9 +72,10 @@ a {
   color: var(--color-primary);
 }
 
-.brand-header svg {
-  width: 28px;
-  height: 28px;
+.brand-header-logo {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
 }
 
 .brand-header span {
