@@ -1,5 +1,6 @@
 import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
 import { EstimationListItem, EstimationLine } from '../models/Job';
+import { NotImplementedError } from '../utils/errors';
 
 /**
  * VERIFIED against the live Estimation01Sql view (32 columns, 5940 real rows). `ID` is the
@@ -91,9 +92,17 @@ export class EstimationRepository {
     return callProcedure<EstimationLine>('spGetEstmationDetails', { JobCardNo: jobCardNo });
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
-  async setApproval(id: number, approved: boolean, remarks?: string): Promise<void> {
-    await callProcedure('sp_ApproveEstimation', { ID: id, Approved: approved ? 1 : 0, Remarks: remarks ?? null });
+  /**
+   * BLOCKED: the real Estimation01 base table (verified live) has no `Approved` column at all -
+   * Estimation01Sql's `Approved` field must be computed or joined from somewhere else in the
+   * schema that this build didn't need to touch for reads. There is nowhere to write an
+   * approval flag until that real source is identified.
+   */
+  async setApproval(_id: number, _approved: boolean, _remarks?: string): Promise<void> {
+    throw new NotImplementedError(
+      'Approving/rejecting estimations is not supported yet - Estimation01 has no Approved column in the ' +
+        "live schema; Estimation01Sql's Approved field comes from an unidentified source."
+    );
   }
 }
 

@@ -1,4 +1,4 @@
-import { queryView, callProcedure } from '../db/callProcedure';
+import { queryView, executeWrite } from '../db/callProcedure';
 import { CompanyHeader, MenuItem } from '../models/Reporting';
 
 /**
@@ -43,9 +43,29 @@ export class ReportingRepository {
     return rows.length ? toCompanyHeader(rows[0]) : null;
   }
 
-  // Placeholder procedure name - no confirmed update SP for the Company table in the real catalog.
+  /** Company is a real, single-row (PK CCode) base table - no WHERE needed beyond "the one row". */
   async updateCompanyHeader(changes: Partial<Omit<CompanyHeader, 'ccode'>>): Promise<void> {
-    await callProcedure('spUpdateCompanyHeader', changes);
+    const columnMap: Record<string, string> = {
+      companyName: 'CompanyName',
+      address1: 'Address1',
+      address2: 'Address2',
+      address3: 'Address3',
+      phone1: 'Phone1',
+      phone2: 'Phone2',
+      fax: 'Fax',
+      email: 'email'
+    };
+    const sets: string[] = [];
+    const params: Record<string, unknown> = {};
+    for (const [key, column] of Object.entries(columnMap)) {
+      const value = (changes as Record<string, unknown>)[key];
+      if (value !== undefined) {
+        sets.push(`${column} = @${key}`);
+        params[key] = value;
+      }
+    }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE Company SET ${sets.join(', ')}`, params);
   }
 
   async listMenu(): Promise<MenuItem[]> {

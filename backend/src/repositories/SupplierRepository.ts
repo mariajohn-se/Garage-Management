@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { Supplier } from '../models/Party';
 
 /**
@@ -100,36 +100,50 @@ export class SupplierRepository {
     return rows.length ? toSupplier(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog. NOT executed
-  // against production in this build's verification - this is 430 rows of real supplier data.
+  /**
+   * Supplier.SuppID (PK) has no identity backing it live - app-generated MAX+1, same pattern
+   * as Customer.CustId. `area` is nvarchar(6) - an area CODE, not the free-text name the
+   * SupplierSql view resolves for reads; values over 6 chars are dropped rather than guessed.
+   */
   async create(input: Omit<Supplier, 'suppId'>): Promise<string> {
-    const rows = await callProcedure<{ SuppID: string }>('sp_CreateSupplier', {
-      SuppName: input.name,
-      Phone1: input.phone1,
-      Phone2: input.phone2,
-      Email: input.email,
-      ContactPerson: input.contactPerson,
-      Area: input.area,
-      Remarks: input.remarks
+    return withNextNumericId('Supplier', 'SuppID', async (nextId, req) => {
+      const suppId = String(nextId);
+      const area = input.area && input.area.length <= 6 ? input.area : null;
+      await req
+        .input('SuppID', suppId)
+        .input('SuppName', input.name)
+        .input('Phone1', input.phone1 ?? null)
+        .input('Phone2', input.phone2 ?? null)
+        .input('email', input.email ?? null)
+        .input('ContactPerson', input.contactPerson ?? null)
+        .input('area', area)
+        .input('Remarks', input.remarks ?? null).query(`
+          INSERT INTO Supplier (ccode, SuppID, SuppName, Phone1, Phone2, email, ContactPerson, area, Remarks, Active)
+          VALUES ('01', @SuppID, @SuppName, @Phone1, @Phone2, @email, @ContactPerson, @area, @Remarks, 1)
+        `);
+      return suppId;
     });
-    return rows[0]?.SuppID;
   }
 
   async update(suppId: string, changes: Partial<Omit<Supplier, 'suppId'>>): Promise<void> {
-    await callProcedure('sp_UpdateSupplier', {
-      SuppId: suppId,
-      SuppName: changes.name,
-      Phone1: changes.phone1,
-      Phone2: changes.phone2,
-      Email: changes.email,
-      ContactPerson: changes.contactPerson,
-      Area: changes.area,
-      Remarks: changes.remarks
-    });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { suppId };
+    if (changes.name !== undefined) { sets.push('SuppName = @SuppName'); params.SuppName = changes.name; }
+    if (changes.phone1 !== undefined) { sets.push('Phone1 = @Phone1'); params.Phone1 = changes.phone1; }
+    if (changes.phone2 !== undefined) { sets.push('Phone2 = @Phone2'); params.Phone2 = changes.phone2; }
+    if (changes.email !== undefined) { sets.push('email = @email'); params.email = changes.email; }
+    if (changes.contactPerson !== undefined) { sets.push('ContactPerson = @ContactPerson'); params.ContactPerson = changes.contactPerson; }
+    if (changes.area !== undefined && (changes.area === null || changes.area.length <= 6)) {
+      sets.push('area = @area');
+      params.area = changes.area;
+    }
+    if (changes.remarks !== undefined) { sets.push('Remarks = @Remarks'); params.Remarks = changes.remarks; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE Supplier SET ${sets.join(', ')} WHERE SuppID = @suppId`, params);
   }
 
   async delete(suppId: string): Promise<void> {
-    await callProcedure('sp_DeleteSupplier', { SuppId: suppId });
+    await executeWrite('DELETE FROM Supplier WHERE SuppID = @suppId', { suppId });
   }
 }
 

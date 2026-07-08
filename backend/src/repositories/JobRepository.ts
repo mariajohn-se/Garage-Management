@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
 import { JobListItem, WorkInProgressItem, AssignedJobItem } from '../models/Job';
 
 /** VERIFIED against the live JobInProgressSql view (30 columns, ~425 real rows). */
@@ -132,9 +132,12 @@ export class JobRepository {
     return rows.length ? toJob(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog.
+  /**
+   * JobInProgressSql (view definition checked live) resolves ID/StatusID to the real base
+   * table `jobInProgress`, not SalesOrdr01 - a plain single-column flag update.
+   */
   async updateStatus(id: number, statusId: number): Promise<void> {
-    await callProcedure('sp_UpdateJobStatus', { ID: id, StatusID: statusId });
+    await executeWrite('UPDATE jobInProgress SET StatusID = @statusId WHERE ID = @id', { id, statusId });
   }
 
   async listWorkInProgress(filters: { page: number; limit: number }): Promise<{
@@ -180,9 +183,12 @@ export class JobRepository {
     return { items: rows.map(toAssigned), total };
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
+  /** AssignedJobsSql resolves to the real base table AssignedJobs (identity DtlId) - plain insert. */
   async assignStaff(ordr: string, empId: number): Promise<void> {
-    await callProcedure('InsertAssignedJobs', { Ordr: ordr, EmpId: empId });
+    await executeWrite(
+      'INSERT INTO AssignedJobs (ordr, empId, DateofAssign) VALUES (@ordr, @empId, GETDATE())',
+      { ordr, empId }
+    );
   }
 }
 

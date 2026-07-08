@@ -45,9 +45,12 @@ export function SideMenu() {
   return (
     <nav className="side-menu" aria-label="Main navigation">
       <Link to="/home" className={`side-menu-home-link ${location.pathname === '/home' ? 'is-active' : ''}`}>
-        <span aria-hidden="true">&#127968;</span>
+        <span className="side-menu-icon" aria-hidden="true">
+          &#127968;
+        </span>
         Dashboard
       </Link>
+      <div className="side-menu-section-label">Menu</div>
       <ul className="side-menu-groups">
         {visibleGroups.map((group) => {
           const isOpen = expanded.has(group.title);

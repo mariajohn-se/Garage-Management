@@ -1,4 +1,4 @@
-import { queryView, callProcedure } from '../db/callProcedure';
+import { queryView, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { JobStatus } from '../models/Job';
 
 /**
@@ -51,34 +51,47 @@ export class JobStatusMasterRepository {
     return rows.length ? toStatus(rows[0]) : null;
   }
 
-  // Placeholder procedure names - matches IMPLEMENTATION_PHASE5_v12.md's own suggested names;
-  // not confirmed against the real SP catalog.
+  /** salesOrdrStatusHead.StatusID (PK) has no identity backing it live - app-generated MAX+1. */
   async create(input: Omit<JobStatus, 'statusId'>): Promise<number> {
-    const rows = await callProcedure<{ StatusID: number }>('InsertSalesOrdrStatusHead', {
-      Description: input.description,
-      FinishedStatusYN: input.finishedStatus ? 1 : 0,
-      PartsNotAvailYN: input.partsNotAvailable ? 1 : 0,
-      INProgressYN: input.inProgress ? 1 : 0,
-      ForeColour: input.foreColour,
-      BackColour: input.backColour,
-      SortOrder: input.sortOrder
+    return withNextNumericId('salesOrdrStatusHead', 'StatusID', async (nextId, req) => {
+      await req
+        .input('StatusID', nextId)
+        .input('Description', input.description)
+        .input('FinishedStatusYN', input.finishedStatus ? 1 : 0)
+        .input('PartsNotAvailYN', input.partsNotAvailable ? 1 : 0)
+        .input('INProgressYN', input.inProgress ? 1 : 0)
+        .input('ForeColour', input.foreColour ?? null)
+        .input('BackColour', input.backColour ?? null)
+        .input('AssignedYN', input.assigned ? 1 : 0)
+        .input('ApprovedYN', input.approved ? 1 : 0)
+        .input('SortOrder', input.sortOrder ?? null).query(`
+          INSERT INTO salesOrdrStatusHead
+            (StatusID, Description, FinishedStatusYN, PartsNotAvailYN, INProgressYN, ForeColour, BackColour, AssignedYN, ApprovedYN, SortOrder)
+          VALUES
+            (@StatusID, @Description, @FinishedStatusYN, @PartsNotAvailYN, @INProgressYN, @ForeColour, @BackColour, @AssignedYN, @ApprovedYN, @SortOrder)
+        `);
+      return nextId;
     });
-    return rows[0]?.StatusID;
   }
 
   async update(statusId: number, changes: Partial<Omit<JobStatus, 'statusId'>>): Promise<void> {
-    await callProcedure('UpdateSalesOrdrStatusHead', {
-      StatusID: statusId,
-      Description: changes.description,
-      FinishedStatusYN: changes.finishedStatus === undefined ? undefined : changes.finishedStatus ? 1 : 0,
-      ForeColour: changes.foreColour,
-      BackColour: changes.backColour,
-      SortOrder: changes.sortOrder
-    });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { statusId };
+    if (changes.description !== undefined) { sets.push('Description = @Description'); params.Description = changes.description; }
+    if (changes.finishedStatus !== undefined) { sets.push('FinishedStatusYN = @FinishedStatusYN'); params.FinishedStatusYN = changes.finishedStatus ? 1 : 0; }
+    if (changes.partsNotAvailable !== undefined) { sets.push('PartsNotAvailYN = @PartsNotAvailYN'); params.PartsNotAvailYN = changes.partsNotAvailable ? 1 : 0; }
+    if (changes.inProgress !== undefined) { sets.push('INProgressYN = @INProgressYN'); params.INProgressYN = changes.inProgress ? 1 : 0; }
+    if (changes.foreColour !== undefined) { sets.push('ForeColour = @ForeColour'); params.ForeColour = changes.foreColour; }
+    if (changes.backColour !== undefined) { sets.push('BackColour = @BackColour'); params.BackColour = changes.backColour; }
+    if (changes.assigned !== undefined) { sets.push('AssignedYN = @AssignedYN'); params.AssignedYN = changes.assigned ? 1 : 0; }
+    if (changes.approved !== undefined) { sets.push('ApprovedYN = @ApprovedYN'); params.ApprovedYN = changes.approved ? 1 : 0; }
+    if (changes.sortOrder !== undefined) { sets.push('SortOrder = @SortOrder'); params.SortOrder = changes.sortOrder; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE salesOrdrStatusHead SET ${sets.join(', ')} WHERE StatusID = @statusId`, params);
   }
 
   async delete(statusId: number): Promise<void> {
-    await callProcedure('DeleteSalesOrdrStatusHead', { StatusID: statusId });
+    await executeWrite('DELETE FROM salesOrdrStatusHead WHERE StatusID = @statusId', { statusId });
   }
 }
 

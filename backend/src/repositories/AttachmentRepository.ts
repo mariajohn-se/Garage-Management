@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
 import { Attachment } from '../models/Document';
 
 /**
@@ -78,19 +78,19 @@ export class AttachmentRepository {
     return rows.length ? toAttachment(rows[0]) : null;
   }
 
-  // Placeholder procedure name - not confirmed against the real SP catalog.
+  /** AttachmentMaster.ID is a real identity column - safe to let SQL Server assign it. */
   async create(input: {
     type: string | null;
     codes: string | null;
     remarks: string | null;
     path: string;
   }): Promise<number> {
-    const rows = await callProcedure<{ ID: number }>('spCreateAttachment', {
-      Type: input.type,
-      Codes: input.codes,
-      Remarks: input.remarks,
-      Path: input.path
-    });
+    const rows = await executeWrite<{ ID: number }>(
+      `INSERT INTO AttachmentMaster (Type, Codes, Remarks, Path)
+       OUTPUT INSERTED.ID
+       VALUES (@type, @codes, @remarks, @path)`,
+      { type: input.type, codes: input.codes, remarks: input.remarks, path: input.path }
+    );
     return rows[0]?.ID;
   }
 
@@ -98,11 +98,17 @@ export class AttachmentRepository {
     id: number,
     changes: { type?: string | null; codes?: string | null; remarks?: string | null }
   ): Promise<void> {
-    await callProcedure('spUpdateAttachment', { ID: id, ...changes });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { id };
+    if (changes.type !== undefined) { sets.push('Type = @type'); params.type = changes.type; }
+    if (changes.codes !== undefined) { sets.push('Codes = @codes'); params.codes = changes.codes; }
+    if (changes.remarks !== undefined) { sets.push('Remarks = @remarks'); params.remarks = changes.remarks; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE AttachmentMaster SET ${sets.join(', ')} WHERE ID = @id`, params);
   }
 
   async delete(id: number): Promise<void> {
-    await callProcedure('spDeleteAttachment', { ID: id });
+    await executeWrite('DELETE FROM AttachmentMaster WHERE ID = @id', { id });
   }
 }
 

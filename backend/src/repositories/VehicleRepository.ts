@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { Vehicle } from '../models/Party';
 
 /**
@@ -75,36 +75,41 @@ export class VehicleRepository {
     return rows.length ? toVehicle(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog. NOT executed
-  // against production in this build's verification - this is 7442 rows of real vehicle data.
+  /** CustomerVehicle.VehID (PK) has no identity backing it live - app-generated MAX+1. */
   async create(input: Omit<Vehicle, 'vehId'>): Promise<number> {
-    const rows = await callProcedure<{ VehID: number }>('sp_CreateCustomerVehicle', {
-      VehNo: input.vehNo,
-      Make: input.make,
-      Colour: input.colour,
-      ManYear: input.manYear,
-      EngineNo: input.engineNo,
-      RegType: input.regType,
-      Remarks: input.remarks
+    return withNextNumericId('CustomerVehicle', 'VehID', async (nextId, req) => {
+      await req
+        .input('VehID', nextId)
+        .input('VehNo', input.vehNo ?? null)
+        .input('Make', input.make ?? null)
+        .input('Colour', input.colour ?? null)
+        .input('ManYear', input.manYear ?? null)
+        .input('EngineNo', input.engineNo ?? null)
+        .input('RegType', input.regType ?? null)
+        .input('Remarks', input.remarks ?? null).query(`
+          INSERT INTO CustomerVehicle (VehID, VehNo, Make, Colour, ManYear, EngineNo, RegType, Remarks)
+          VALUES (@VehID, @VehNo, @Make, @Colour, @ManYear, @EngineNo, @RegType, @Remarks)
+        `);
+      return nextId;
     });
-    return rows[0]?.VehID;
   }
 
   async update(vehId: number, changes: Partial<Omit<Vehicle, 'vehId'>>): Promise<void> {
-    await callProcedure('sp_UpdateCustomerVehicle', {
-      VehID: vehId,
-      VehNo: changes.vehNo,
-      Make: changes.make,
-      Colour: changes.colour,
-      ManYear: changes.manYear,
-      EngineNo: changes.engineNo,
-      RegType: changes.regType,
-      Remarks: changes.remarks
-    });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { vehId };
+    if (changes.vehNo !== undefined) { sets.push('VehNo = @VehNo'); params.VehNo = changes.vehNo; }
+    if (changes.make !== undefined) { sets.push('Make = @Make'); params.Make = changes.make; }
+    if (changes.colour !== undefined) { sets.push('Colour = @Colour'); params.Colour = changes.colour; }
+    if (changes.manYear !== undefined) { sets.push('ManYear = @ManYear'); params.ManYear = changes.manYear; }
+    if (changes.engineNo !== undefined) { sets.push('EngineNo = @EngineNo'); params.EngineNo = changes.engineNo; }
+    if (changes.regType !== undefined) { sets.push('RegType = @RegType'); params.RegType = changes.regType; }
+    if (changes.remarks !== undefined) { sets.push('Remarks = @Remarks'); params.Remarks = changes.remarks; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE CustomerVehicle SET ${sets.join(', ')} WHERE VehID = @vehId`, params);
   }
 
   async delete(vehId: number): Promise<void> {
-    await callProcedure('sp_DeleteCustomerVehicle', { VehID: vehId });
+    await executeWrite('DELETE FROM CustomerVehicle WHERE VehID = @vehId', { vehId });
   }
 }
 

@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, callProcedure, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { Customer, AgewiseBucket } from '../models/Party';
 
 /**
@@ -110,38 +110,62 @@ export class CustomerRepository {
     return rows.length ? toCustomer(rows[0]) : null;
   }
 
-  // Placeholder procedure names - not confirmed against the real SP catalog (same caveat as
-  // every write path in this codebase so far). NOT executed against production in this
-  // build's verification - this is 6565 rows of real customer data.
+  /**
+   * Customer.CustId (PK) has no identity/sequence backing it live (verified 2026-07-07) - the
+   * legacy app generated it as MAX+1 over the numeric-string column. withNextNumericId() takes
+   * a serializable-transaction lock on that read so two concurrent creates can't collide.
+   * `ccode` is always '01' in production (single-company install) - the same constant Company
+   * and Supplier use.
+   *
+   * NOTE: `area` is nvarchar(6) on the real Customer table - it stores an area CODE, not the
+   * free-text area name the CustomerSql view resolves for reads. Passing a free-text name here
+   * will throw "String or binary data would be truncated" for anything over 6 chars. Until the
+   * frontend sends a real area code (e.g. a dropdown of valid codes), area writes are dropped
+   * rather than guessed.
+   */
   async create(input: Omit<Customer, 'custId'>): Promise<string> {
-    const rows = await callProcedure<{ CustId: string }>('sp_CreateCustomer', {
-      CustName: input.name,
-      Phone1: input.phone1,
-      Phone2: input.phone2,
-      Email: input.email,
-      ContactPerson: input.contactPerson,
-      Area: input.area,
-      Remarks: input.remarks
+    return withNextNumericId('Customer', 'CustId', async (nextId, req) => {
+      const custId = String(nextId);
+      const area = input.area && input.area.length <= 6 ? input.area : null;
+      await req
+        .input('CustId', custId)
+        .input('custname', input.name)
+        .input('Address1', input.address ?? null)
+        .input('Phone1', input.phone1 ?? null)
+        .input('Phone2', input.phone2 ?? null)
+        .input('email', input.email ?? null)
+        .input('ContactPerson', input.contactPerson ?? null)
+        .input('area', area)
+        .input('Remarks', input.remarks ?? null)
+        .input('Active', input.isActive === false ? 0 : 1).query(`
+          INSERT INTO Customer (ccode, CustId, custname, Address1, Phone1, Phone2, email, ContactPerson, area, Remarks, Active)
+          VALUES ('01', @CustId, @custname, @Address1, @Phone1, @Phone2, @email, @ContactPerson, @area, @Remarks, @Active)
+        `);
+      return custId;
     });
-    return rows[0]?.CustId;
   }
 
   async update(custId: string, changes: Partial<Omit<Customer, 'custId'>>): Promise<void> {
-    await callProcedure('sp_UpdateCustomer', {
-      CustId: custId,
-      CustName: changes.name,
-      Phone1: changes.phone1,
-      Phone2: changes.phone2,
-      Email: changes.email,
-      ContactPerson: changes.contactPerson,
-      Area: changes.area,
-      Remarks: changes.remarks,
-      Active: changes.isActive === undefined ? undefined : changes.isActive ? 1 : 0
-    });
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { custId };
+    if (changes.name !== undefined) { sets.push('custname = @custname'); params.custname = changes.name; }
+    if (changes.address !== undefined) { sets.push('Address1 = @Address1'); params.Address1 = changes.address; }
+    if (changes.phone1 !== undefined) { sets.push('Phone1 = @Phone1'); params.Phone1 = changes.phone1; }
+    if (changes.phone2 !== undefined) { sets.push('Phone2 = @Phone2'); params.Phone2 = changes.phone2; }
+    if (changes.email !== undefined) { sets.push('email = @email'); params.email = changes.email; }
+    if (changes.contactPerson !== undefined) { sets.push('ContactPerson = @ContactPerson'); params.ContactPerson = changes.contactPerson; }
+    if (changes.area !== undefined && (changes.area === null || changes.area.length <= 6)) {
+      sets.push('area = @area');
+      params.area = changes.area;
+    }
+    if (changes.remarks !== undefined) { sets.push('Remarks = @Remarks'); params.Remarks = changes.remarks; }
+    if (changes.isActive !== undefined) { sets.push('Active = @Active'); params.Active = changes.isActive ? 1 : 0; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE Customer SET ${sets.join(', ')} WHERE CustId = @custId`, params);
   }
 
   async delete(custId: string): Promise<void> {
-    await callProcedure('sp_DeleteCustomer', { CustId: custId });
+    await executeWrite('DELETE FROM Customer WHERE CustId = @custId', { custId });
   }
 
   /**
