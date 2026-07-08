@@ -8,7 +8,9 @@
 
 ## Brand Assets
 
-**Primary Brand Color:** `#3831c4` — this is FIXED. Use it for `color-primary` exactly as given and derive all secondary, accent, and neutral colors to complement it.
+**Primary Brand Color:** `#f57c00` (Industrial Steel & Amber palette, adopted 2026-07-08 to fit
+the garage/workshop domain better than the original generic indigo). Use it for `color-primary`
+exactly as given and derive all secondary, accent, and neutral colors to complement it.
 
 ---
 
@@ -18,23 +20,23 @@
 
 | Token | Hex | Usage |
 |---|---|---|
-| `color-primary` | `#3831c4` | Primary brand, buttons, icons, accents |
-| `color-primary-dark` | `#2a2597` | Hover/active state for primary elements |
-| `color-primary-light` | `#6c65ea` | Subtle highlights, progress gradients |
-| `color-primary-surface` | `#f5f6ffb3` | Icon backgrounds, light accent areas |
-| `color-primary-border` | `#cfd2fc` | Card borders, dividers on light surfaces |
-| `color-bg-page` | `#e8eafc` | App/page background |
+| `color-primary` | `#f57c00` | Primary brand, buttons, icons, accents (amber) |
+| `color-primary-dark` | `#e65100` | Hover/active state for primary elements |
+| `color-primary-light` | `#ffb74d` | Subtle highlights, progress gradients |
+| `color-primary-surface` | `#fff3e0cc` | Icon backgrounds, light accent areas |
+| `color-primary-border` | `#ffd9a6` | Card borders, dividers on light surfaces |
+| `color-bg-page` | `#eef1f4` | App/page background (cool steel gray) |
 | `color-bg-card` | `#ffffffcc` | Card/panel background |
-| `color-bg-dark-card` | `#1c1b38cc` | Dark card variant |
-| `color-text-primary` | `#232233` | Primary readable text |
-| `color-text-secondary` | `#595987` | Labels, metadata, muted text |
-| `color-text-muted` | `#959ac7` | Notes, hints, disabled-adjacent text |
+| `color-bg-dark-card` | `#1f2a33cc` | Dark card variant (steel slate) |
+| `color-text-primary` | `#1f2a33` | Primary readable text |
+| `color-text-secondary` | `#52606d` | Labels, metadata, muted text |
+| `color-text-muted` | `#8895a0` | Notes, hints, disabled-adjacent text |
 | `color-success` | `#2eae6c` | Completed states, positive feedback |
-| `color-warning` | `#f7be43` | Caution, pending states |
+| `color-warning` | `#f5a623` | Caution, pending states |
 | `color-error` | `#d23b41` | Errors, validation failures |
 | `color-info` | `#368aad` | Informational messages |
-| `color-border` | `#ebecf5` | Input borders, dividers |
-| `color-border-strong` | `#d3d6ee` | Strong dividers, focused borders |
+| `color-border` | `#e3e7eb` | Input borders, dividers |
+| `color-border-strong` | `#c7ced4` | Strong dividers, focused borders |
 
 ---
 
@@ -45,31 +47,31 @@ Declare this block in `index.css` or `tokens.css`. Every color value must match 
 ```css
 :root {
   /* Brand */
-  --color-primary:         #3831c4;
-  --color-primary-dark:    #2a2597;
-  --color-primary-light:   #6c65ea;
-  --color-primary-surface: #f5f6ffb3;
-  --color-primary-border:  #cfd2fc;
+  --color-primary:         #f57c00;
+  --color-primary-dark:    #e65100;
+  --color-primary-light:   #ffb74d;
+  --color-primary-surface: #fff3e0cc;
+  --color-primary-border:  #ffd9a6;
 
   /* Backgrounds */
-  --color-bg-page:      #e8eafc;
+  --color-bg-page:      #eef1f4;
   --color-bg-card:      #ffffffcc;
-  --color-bg-dark-card: #1c1b38cc;
+  --color-bg-dark-card: #1f2a33cc;
 
   /* Text */
-  --color-text-primary:   #232233;
-  --color-text-secondary: #595987;
-  --color-text-muted:     #959ac7;
+  --color-text-primary:   #1f2a33;
+  --color-text-secondary: #52606d;
+  --color-text-muted:     #8895a0;
 
   /* Semantic */
   --color-success: #2eae6c;
-  --color-warning: #f7be43;
+  --color-warning: #f5a623;
   --color-error:   #d23b41;
   --color-info:    #368aad;
 
   /* Borders */
-  --color-border:        #ebecf5;
-  --color-border-strong: #d3d6ee;
+  --color-border:        #e3e7eb;
+  --color-border-strong: #c7ced4;
 
   /* Typography */
   --text-h1-size: 28px;      --text-h1-weight: 700;  --text-h1-line-height: 1.2;
@@ -94,10 +96,10 @@ Declare this block in `index.css` or `tokens.css`. Every color value must match 
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm:    0 2px 8px 0 rgba(56,49,196,0.08);
-  --shadow-md:    0 4px 16px 0 rgba(56,49,196,0.10);
-  --shadow-lg:    0 8px 32px 0 rgba(56,49,196,0.13);
-  --shadow-focus: 0 0 0 3px #3831c433;
+  --shadow-sm:    0 2px 8px 0 rgba(245,124,0,0.08);
+  --shadow-md:    0 4px 16px 0 rgba(245,124,0,0.10);
+  --shadow-lg:    0 8px 32px 0 rgba(245,124,0,0.13);
+  --shadow-focus: 0 0 0 3px #f57c0033;
 }
 ```
 

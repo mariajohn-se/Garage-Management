@@ -1,30 +1,30 @@
 :root {
-  /* Brand */
-  --color-primary: #3831c4;
-  --color-primary-dark: #2a2597;
-  --color-primary-light: #6c65ea;
-  --color-primary-surface: #f5f6ffb3;
-  --color-primary-border: #cfd2fc;
+  /* Brand - Industrial Steel & Amber */
+  --color-primary: #f57c00;
+  --color-primary-dark: #e65100;
+  --color-primary-light: #ffb74d;
+  --color-primary-surface: #fff3e0cc;
+  --color-primary-border: #ffd9a6;
 
   /* Backgrounds */
-  --color-bg-page: #e8eafc;
+  --color-bg-page: #eef1f4;
   --color-bg-card: #ffffffcc;
-  --color-bg-dark-card: #1c1b38cc;
+  --color-bg-dark-card: #1f2a33cc;
 
   /* Text */
-  --color-text-primary: #232233;
-  --color-text-secondary: #595987;
-  --color-text-muted: #959ac7;
+  --color-text-primary: #1f2a33;
+  --color-text-secondary: #52606d;
+  --color-text-muted: #8895a0;
 
   /* Semantic */
   --color-success: #2eae6c;
-  --color-warning: #f7be43;
+  --color-warning: #f5a623;
   --color-error: #d23b41;
   --color-info: #368aad;
 
   /* Borders */
-  --color-border: #ebecf5;
-  --color-border-strong: #d3d6ee;
+  --color-border: #e3e7eb;
+  --color-border-strong: #c7ced4;
 
   /* Typography */
   --text-h1-size: 28px;
@@ -71,8 +71,8 @@
   --radius-full: 9999px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px 0 rgba(56, 49, 196, 0.08);
-  --shadow-md: 0 4px 16px 0 rgba(56, 49, 196, 0.1);
-  --shadow-lg: 0 8px 32px 0 rgba(56, 49, 196, 0.13);
-  --shadow-focus: 0 0 0 3px #3831c433;
+  --shadow-sm: 0 2px 8px 0 rgba(245, 124, 0, 0.08);
+  --shadow-md: 0 4px 16px 0 rgba(245, 124, 0, 0.1);
+  --shadow-lg: 0 8px 32px 0 rgba(245, 124, 0, 0.13);
+  --shadow-focus: 0 0 0 3px #f57c0033;
 }
