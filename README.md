@@ -1,4 +1,4 @@
-# Integrated Business Operations Suite
+# Garage Management
 
 DB-Preserve build: an Express/TypeScript + React SPA over the existing legacy SQL Server
 database. No schema changes; writes go through stored procedures, reads through views/tables.

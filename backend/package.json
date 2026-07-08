@@ -1,7 +1,7 @@
 {
-  "name": "ibos-backend",
+  "name": "garage-management-backend",
   "version": "1.0.0",
-  "description": "Integrated Business Operations Suite - Backend API",
+  "description": "Garage Management - Backend API",
   "private": true,
   "main": "dist/server.js",
   "scripts": {

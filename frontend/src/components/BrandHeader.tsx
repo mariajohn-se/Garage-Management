@@ -12,7 +12,7 @@ export function BrandHeader() {
         <rect width="18" height="18" x="3" y="3" rx="4" />
         <path d="M3 9h18" />
       </svg>
-      <span>Integrated Business Operations Suite</span>
+      <span>Garage Management</span>
     </div>
   );
 }
