@@ -1,4 +1,4 @@
-import { queryView, queryViewPaginated, callProcedure, executeWrite, withNextNumericId } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { Customer, AgewiseBucket } from '../models/Party';
 
 /**
@@ -169,26 +169,103 @@ export class CustomerRepository {
   }
 
   /**
-   * VERIFIED FINDING: AgewiseSummary (real, documented in DB_CONNECTION_SPEC_v12.md) throws
-   * "Cannot resolve the collation conflict between Latin1_General_CI_AS and
-   * SQL_Latin1_General_CP1_CI_AS" for every parameter combination tried against the live DB -
-   * a pre-existing bug inside the stored procedure itself (comparing columns of differing
-   * collations), not something introduced or fixable here (DB-Preserve mode forbids altering
-   * procedures). This method calls it faithfully per the documented signature; the /agewise
-   * endpoint and frontend page surface whatever error it throws rather than masking it.
+   * VERIFIED FINDING (2026-07-08): AgewiseSummary throws "Cannot resolve the collation conflict
+   * between Latin1_General_CI_AS and SQL_Latin1_General_CP1_CI_AS" on every call - traced to a
+   * real environment defect, not a param issue: the SQL Server instance's tempdb defaults to
+   * Latin1_General_CI_AS while the autodealer DB (and every real column - ACHEAD.CODES,
+   * acdetails.AC, etc.) is SQL_Latin1_General_CP1_CI_AS. The procedure's #tmp1/#tmp2 temp
+   * tables inherit tempdb's collation, so every join between them and a real table conflicts.
+   * STANDARDS.md's DB-Preserve mode forbids altering the procedure to add explicit COLLATE
+   * clauses, so this reimplements its Customer-mode/as-of-date aging math directly as CTEs
+   * (verified against the procedure's own source via OBJECT_DEFINITION) - CTEs inherit
+   * collation from their source columns, never from tempdb, so the conflict never arises.
+   *
+   * Also fixes a pre-existing mapping bug: AgewiseSummary returns one row per customer account
+   * with per-bucket columns (D15/D30/.../D360), not one row per bucket - the old code read
+   * `description`/`Tot` off that per-account row as if it were a bucket label/amount. This
+   * returns the real aging-bucket summary: total outstanding (net of receipts, oldest-first,
+   * matching the procedure's own waterfall) across all customer accounts, per bucket.
    */
   async agewise(asOfDate: string): Promise<AgewiseBucket[]> {
-    const rows = await callProcedure<Record<string, unknown>>('AgewiseSummary', {
-      mDate: asOfDate,
-      mActualDate: 0,
-      Customer: 1,
-      Supplier: 0,
-      mCode: null,
-      mDatewise: 0,
-      mContactdate: null,
-      ReportType: 0
-    });
-    return rows.map((r) => ({ bucket: String(r.description ?? r.Name ?? ''), amount: Number(r.Tot ?? 0) }));
+    const rows = await queryView<{
+      D15: number | null;
+      D30: number | null;
+      D60: number | null;
+      D90: number | null;
+      D120: number | null;
+      D360: number | null;
+    }>(
+      `WITH accounts AS (
+         SELECT CODES AS ac FROM ACHEAD WHERE CUSTOMER = 1
+       ),
+       raw AS (
+         SELECT
+           a.ac,
+           SUM(CASE WHEN d.cred > 0 THEN d.cred ELSE 0 END) AS rcpt,
+           SUM(CASE WHEN d.debt > 0 THEN d.debt ELSE 0 END) AS tot,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) <= 15 THEN d.debt ELSE 0 END) AS D15,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) BETWEEN 16 AND 30 THEN d.debt ELSE 0 END) AS D30,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) BETWEEN 31 AND 60 THEN d.debt ELSE 0 END) AS D60,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) BETWEEN 61 AND 90 THEN d.debt ELSE 0 END) AS D90,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) BETWEEN 91 AND 120 THEN d.debt ELSE 0 END) AS D120,
+           SUM(CASE WHEN DATEDIFF(day, d.date, @mDate) > 120 THEN d.debt ELSE 0 END) AS D360
+         FROM accounts a
+         JOIN acdetails d ON d.ac = a.ac AND d.date <= @mDate
+         GROUP BY a.ac
+         HAVING ROUND(SUM(CASE WHEN d.cred > 0 THEN d.cred ELSE 0 END), 2) <
+                ROUND(SUM(CASE WHEN d.debt > 0 THEN d.debt ELSE 0 END), 2)
+       ),
+       step1 AS (
+         SELECT *,
+           CASE WHEN D360 <= rcpt THEN 0 ELSE D360 - rcpt END AS D360n,
+           CASE WHEN rcpt >= D360 THEN rcpt - D360 ELSE 0 END AS rem1
+         FROM raw
+       ),
+       step2 AS (
+         SELECT *,
+           CASE WHEN D120 <= rem1 THEN 0 ELSE D120 - rem1 END AS D120n,
+           CASE WHEN rem1 >= D120 THEN rem1 - D120 ELSE 0 END AS rem2
+         FROM step1
+       ),
+       step3 AS (
+         SELECT *,
+           CASE WHEN D90 <= rem2 THEN 0 ELSE D90 - rem2 END AS D90n,
+           CASE WHEN rem2 >= D90 THEN rem2 - D90 ELSE 0 END AS rem3
+         FROM step2
+       ),
+       step4 AS (
+         SELECT *,
+           CASE WHEN D60 <= rem3 THEN 0 ELSE D60 - rem3 END AS D60n,
+           CASE WHEN rem3 >= D60 THEN rem3 - D60 ELSE 0 END AS rem4
+         FROM step3
+       ),
+       step5 AS (
+         SELECT *,
+           CASE WHEN D30 <= rem4 THEN 0 ELSE D30 - rem4 END AS D30n,
+           CASE WHEN rem4 >= D30 THEN rem4 - D30 ELSE 0 END AS rem5
+         FROM step4
+       ),
+       final AS (
+         SELECT *,
+           CASE WHEN D15 <= rem5 THEN 0 ELSE D15 - rem5 END AS D15n
+         FROM step5
+       )
+       SELECT
+         SUM(D15n) AS D15, SUM(D30n) AS D30, SUM(D60n) AS D60,
+         SUM(D90n) AS D90, SUM(D120n) AS D120, SUM(D360n) AS D360
+       FROM final`,
+      { mDate: asOfDate }
+    );
+    const r = rows[0];
+    if (!r) return [];
+    return [
+      { bucket: '0-15 Days', amount: r.D15 ?? 0 },
+      { bucket: '16-30 Days', amount: r.D30 ?? 0 },
+      { bucket: '31-60 Days', amount: r.D60 ?? 0 },
+      { bucket: '61-90 Days', amount: r.D90 ?? 0 },
+      { bucket: '91-120 Days', amount: r.D120 ?? 0 },
+      { bucket: 'Over 120 Days', amount: r.D360 ?? 0 }
+    ];
   }
 }
 

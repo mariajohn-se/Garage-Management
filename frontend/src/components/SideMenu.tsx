@@ -7,6 +7,25 @@ function groupContainsPath(group: (typeof MENU_GROUPS)[number], pathname: string
   return group.links.some((link) => pathname === link.to || pathname.startsWith(`${link.to}/`));
 }
 
+/**
+ * NavLink's own prefix matching (isActive) lights up EVERY link whose `to` is a prefix of the
+ * current path - e.g. both "Sales Orders" (/orders) and "Order Lookup" (/orders/help) match
+ * simultaneously while on /orders/help, since /orders/help starts with /orders too. Only the
+ * longest (most specific) matching link across all groups should actually highlight.
+ */
+function findMostSpecificMatch(groups: (typeof MENU_GROUPS)[number][], pathname: string): string | null {
+  let best: string | null = null;
+  for (const group of groups) {
+    for (const link of group.links) {
+      const matches = pathname === link.to || pathname.startsWith(`${link.to}/`);
+      if (matches && (best === null || link.to.length > best.length)) {
+        best = link.to;
+      }
+    }
+  }
+  return best;
+}
+
 export function SideMenu() {
   const { session } = useAuth();
   const location = useLocation();
@@ -42,6 +61,8 @@ export function SideMenu() {
     links: group.links.filter((link) => canSeeLink(link, isPrivileged, isAdmin))
   })).filter((group) => group.links.length > 0);
 
+  const activeLinkTo = findMostSpecificMatch(visibleGroups, location.pathname);
+
   return (
     <nav className="side-menu" aria-label="Main navigation">
       <Link to="/home" className={`side-menu-home-link ${location.pathname === '/home' ? 'is-active' : ''}`}>
@@ -74,7 +95,7 @@ export function SideMenu() {
               <ul className={`side-menu-sublist ${isOpen ? 'is-open' : ''}`}>
                 {group.links.map((link) => (
                   <li key={link.to}>
-                    <NavLink to={link.to} className={({ isActive }) => (isActive ? 'is-active' : '')}>
+                    <NavLink to={link.to} className={link.to === activeLinkTo ? 'is-active' : ''}>
                       {link.label}
                     </NavLink>
                   </li>

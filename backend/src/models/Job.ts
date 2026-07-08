@@ -16,11 +16,17 @@ export interface EstimationListItem {
   labourTotal: number | null;
   net: number | null;
   approved: boolean;
+  rejected: boolean;
+  rejectionComment: string | null;
   remarks: string | null;
 }
 
 export interface EstimationLine {
-  [key: string]: unknown;
+  description: string | null;
+  qty: number | null;
+  unitPrice: number | null;
+  labourAmount: number | null;
+  amount: number | null;
 }
 
 export interface JobListItem {

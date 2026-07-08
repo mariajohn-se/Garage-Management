@@ -27,7 +27,7 @@ export class SalesService {
     const matched = await orderRepository.findByOrdr(input.ordr);
     if (!matched) throw new ValidationError('No matching sales order found for this reference.', 'INVALID_ORDER_REF');
 
-    const doNo = await salesRepository.createDeliveryNote(input);
+    const doNo = await salesRepository.createDeliveryNote(input, matched.custId, req.user!.username);
     await logUserEvent(req, {
       userId: req.user!.sub,
       userName: req.user!.username,

@@ -101,7 +101,7 @@ export function EstimationListPage() {
                     <td>{e.staffName ?? '—'}</td>
                     <td>{e.billDate ? new Date(e.billDate).toLocaleDateString() : '—'}</td>
                     <td>{e.net ?? e.total ?? '—'}</td>
-                    <td>{e.approved ? 'Approved' : 'Pending'}</td>
+                    <td>{e.approved ? 'Approved' : e.rejected ? 'Rejected' : 'Pending'}</td>
                     <td>
                       <Link
                         className="btn-outline"

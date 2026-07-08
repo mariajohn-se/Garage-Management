@@ -1,6 +1,5 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { EstimationListItem, EstimationLine } from '../models/Job';
-import { NotImplementedError } from '../utils/errors';
 
 /**
  * VERIFIED against the live Estimation01Sql view (32 columns, 5940 real rows). `ID` is the
@@ -21,9 +20,18 @@ interface EstimationRow {
   nett: number | null;
   Approved: number | null;
   Remarks: string | null;
+  DecisionDt: string | null;
+  DecisionComment: string | null;
 }
 
+/**
+ * Approved=0 means "not approved", which covers both "never decided" and "explicitly
+ * rejected" - Estimation01Sql's collapsed Approved column can't tell them apart. DecisionDt
+ * (Partsavailable01.ApprovedDt) is only ever set by setApproval() below, for either outcome,
+ * so its presence is what actually distinguishes "rejected" from "still pending".
+ */
 function toEstimation(row: EstimationRow): EstimationListItem {
+  const decided = row.DecisionDt != null;
   return {
     id: row.ID,
     estimationNo: row.EstimationNo,
@@ -36,11 +44,15 @@ function toEstimation(row: EstimationRow): EstimationListItem {
     labourTotal: row.totlabour,
     net: row.nett,
     approved: !!row.Approved,
+    rejected: decided && !row.Approved,
+    rejectionComment: decided && !row.Approved ? row.DecisionComment : null,
     remarks: row.Remarks
   };
 }
 
-const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, custname, VehNo, StaffName, BillDt, Total, totlabour, nett, Approved, Remarks`;
+const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, custname, VehNo, StaffName, BillDt, Total, totlabour, nett, Approved, Remarks,
+  (SELECT TOP 1 ApprovedDt FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionDt,
+  (SELECT TOP 1 ServiceComment FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionComment`;
 
 export class EstimationRepository {
   async list(filters: {
@@ -87,22 +99,72 @@ export class EstimationRepository {
     return rows.length ? toEstimation(rows[0]) : null;
   }
 
-  /** Real, documented SP (DB_CONNECTION_SPEC_v12.md) - line-item detail for a job card. */
-  async getLines(jobCardNo: string): Promise<EstimationLine[]> {
-    return callProcedure<EstimationLine>('spGetEstmationDetails', { JobCardNo: jobCardNo });
+  /**
+   * VERIFIED FINDING (2026-07-08): spGetEstmationDetails (the previously-used "real, documented"
+   * SP) does not actually return line items - it re-returns the Estimation01 header row joined
+   * with customer/vehicle/staff, the same data findById() already provides. The real line-item
+   * table is Estimation02 (49829 real rows), joined to the header by ID (not JobCardNo) per
+   * Estimation02Sql's own view definition.
+   */
+  async getLines(id: number): Promise<EstimationLine[]> {
+    const rows = await queryView<{
+      Description: string | null;
+      Qty: number | null;
+      UnitPrice: number | null;
+      labouramt: number | null;
+    }>('SELECT Description, Qty, UnitPrice, labouramt FROM Estimation02 WHERE ID = @id ORDER BY Sort, Sl', { id });
+    return rows.map((r) => ({
+      description: r.Description,
+      qty: r.Qty,
+      unitPrice: r.UnitPrice,
+      labourAmount: r.labouramt,
+      amount: (r.Qty ?? 0) * (r.UnitPrice ?? 0)
+    }));
   }
 
   /**
-   * BLOCKED: the real Estimation01 base table (verified live) has no `Approved` column at all -
-   * Estimation01Sql's `Approved` field must be computed or joined from somewhere else in the
-   * schema that this build didn't need to touch for reads. There is nowhere to write an
-   * approval flag until that real source is identified.
+   * VERIFIED FINDING (2026-07-08): Estimation01Sql's `Approved` is NOT on Estimation01 itself -
+   * its view definition resolves it as `ISNULL((SELECT Approved FROM Partsavailable01Sql WHERE
+   * Ordr = JobCardNo), 0)`, and spGetEstmationDetails confirms the same join. Partsavailable01
+   * is a real, writable base table (Approved/ApprovedDt/ApprovedAmt/ApprovedUser/ServiceComment
+   * columns - a genuine parts-approval audit trail), just sparsely populated (7 rows live) -
+   * most job cards have no row yet, which is why Estimation01Sql's ISNULL(...,0) shows them as
+   * not approved. ID has no identity backing (same MAX+1 pattern as other legacy tables here).
    */
-  async setApproval(_id: number, _approved: boolean, _remarks?: string): Promise<void> {
-    throw new NotImplementedError(
-      'Approving/rejecting estimations is not supported yet - Estimation01 has no Approved column in the ' +
-        "live schema; Estimation01Sql's Approved field comes from an unidentified source."
+  async setApproval(id: number, approved: boolean, remarks: string | undefined, approvedUser: string): Promise<void> {
+    const rows = await queryView<{ JobCardNo: string | null; CustomerId: string | null }>(
+      'SELECT JObCardNo AS JobCardNo, CustomerId FROM Estimation01 WHERE ID = @id',
+      { id }
     );
+    const jobCardNo = rows[0]?.JobCardNo;
+    if (!jobCardNo) return;
+
+    const existing = await queryView<{ ID: number }>('SELECT ID FROM Partsavailable01 WHERE Ordr = @ordr', {
+      ordr: jobCardNo
+    });
+
+    if (existing.length) {
+      await executeWrite(
+        `UPDATE Partsavailable01
+         SET Approved = @approved, ApprovedDt = GETDATE(), ApprovedUser = @approvedUser, ServiceComment = @remarks
+         WHERE Ordr = @ordr`,
+        { ordr: jobCardNo, approved: approved ? 1 : 0, approvedUser, remarks: remarks ?? null }
+      );
+      return;
+    }
+
+    await withNextNumericId('Partsavailable01', 'ID', async (nextId, req) => {
+      await req
+        .input('ID', nextId)
+        .input('Ordr', jobCardNo)
+        .input('CustId', rows[0]?.CustomerId ?? null)
+        .input('Approved', approved ? 1 : 0)
+        .input('ApprovedUser', approvedUser)
+        .input('ServiceComment', remarks ?? null).query(`
+          INSERT INTO Partsavailable01 (ID, Ccode, RefDt, CustId, Ordr, Approved, ApprovedDt, ApprovedUser, ServiceComment)
+          VALUES (@ID, '01', GETDATE(), @CustId, @Ordr, @Approved, GETDATE(), @ApprovedUser, @ServiceComment)
+        `);
+    });
   }
 }
 

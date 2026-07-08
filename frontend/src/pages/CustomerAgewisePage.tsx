@@ -15,11 +15,7 @@ export function CustomerAgewisePage() {
     try {
       setRows(await customerApi.agewise(asOfDate));
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Unable to load the agewise report. This report currently fails against the live database due to a pre-existing collation bug inside the AgewiseSummary stored procedure (see README.md) - this is not fixable from the application layer.'
-      );
+      setError(err instanceof ApiError ? err.message : 'Unable to load the agewise report.');
     } finally {
       setLoading(false);
     }

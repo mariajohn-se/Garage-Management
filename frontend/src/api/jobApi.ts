@@ -12,7 +12,17 @@ export interface EstimationListItem {
   labourTotal: number | null;
   net: number | null;
   approved: boolean;
+  rejected: boolean;
+  rejectionComment: string | null;
   remarks: string | null;
+}
+
+export interface EstimationLine {
+  description: string | null;
+  qty: number | null;
+  unitPrice: number | null;
+  labourAmount: number | null;
+  amount: number | null;
 }
 
 export interface JobListItem {
@@ -82,7 +92,7 @@ function qs(params: Record<string, unknown>) {
 export const estimationApi = {
   list: (filters: { customerName?: string; vehNo?: string; approved?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<EstimationListItem>>(`/estimations${qs(filters)}`),
-  get: (id: number) => apiRequest<EstimationListItem & { lines: unknown[] }>(`/estimations/${id}`),
+  get: (id: number) => apiRequest<EstimationListItem & { lines: EstimationLine[] }>(`/estimations/${id}`),
   approve: (id: number, approved: boolean, remarks?: string) =>
     apiRequest<{ message: string }>(`/estimations/${id}/approve`, { method: 'PUT', body: { approved, remarks } })
 };

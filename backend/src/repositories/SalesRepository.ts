@@ -1,6 +1,5 @@
-import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
+import { queryView, queryViewPaginated, callProcedure, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { DeliveryNote, SalesInvoice, Proforma } from '../models/Sales';
-import { NotImplementedError } from '../utils/errors';
 
 /**
  * VERIFIED against the live database: Delivery01Sql (42711 rows), Sales01Sql (23021 rows),
@@ -169,21 +168,48 @@ export class SalesRepository {
   }
 
   /**
-   * BLOCKED: Delivery01/02 use the same Ccode+yr partitioned DONo numbering plus a stock-update
-   * flag (UpdtStk) whose trigger/logic isn't visible anywhere in this schema - a delivery note
-   * likely needs to decrement Items.Stock atomically, and guessing that risks silently
-   * corrupting real inventory counts. Needs the real numbering/stock-update rules from someone
-   * who knows this legacy app.
+   * VERIFIED FINDING (2026-07-08): DONo, like SalesOrdr01.Ordr, is NOT a Ccode+yr partitioned
+   * number - `yr` is always '' in live data, and DONo/ID drift apart over decades with no fixed
+   * formula (checked historically), meaning they're two independently-incrementing legacy
+   * counters, not one derived from the other. Generated the same MAX+1 way as Customer/Supplier.
+   * The "New Delivery Note" form collects no line items (header-only), so this creates only the
+   * Delivery01 header row - it does not copy Delivery02 line items or touch Items.Stock, since
+   * neither the UI nor any DB trigger (verified: none exist on Delivery01/02) drives that today.
    */
-  async createDeliveryNote(_input: { ordr: string; deliveredBy: string; remarks: string | null }): Promise<string> {
-    throw new NotImplementedError(
-      'Creating delivery notes requires the real numbering and stock-update rules from the legacy app - not ' +
-        'supported yet.'
-    );
+  async createDeliveryNote(
+    input: { ordr: string; deliveredBy: string; remarks: string | null },
+    custId: string | null,
+    username: string
+  ): Promise<string> {
+    return withNextNumericId('Delivery01', 'ID', async (nextId, req) => {
+      const maxDoNoResult = await req.query(
+        `SELECT ISNULL(MAX(CASE WHEN DONo NOT LIKE '%[^0-9]%' THEN CAST(DONo AS INT) END), 0) AS maxDoNo
+         FROM Delivery01 WITH (UPDLOCK, HOLDLOCK)`
+      );
+      const nextDoNo = String((maxDoNoResult.recordset[0]?.maxDoNo ?? 0) + 1);
+
+      await req
+        .input('ID', nextId)
+        .input('DONo', nextDoNo)
+        .input('Ordr', input.ordr)
+        .input('CustId', custId)
+        .input('Comments', input.deliveredBy)
+        .input('Remarks', input.remarks)
+        .input('User', username).query(`
+          INSERT INTO Delivery01 (ID, Ccode, yr, DONo, DODt, Ordr, CustId, Comments, Remarks, [User])
+          VALUES (@ID, '01', '', @DONo, GETDATE(), @Ordr, @CustId, @Comments, @Remarks, @User)
+        `);
+      return nextDoNo;
+    });
   }
 
-  async updateDeliveryNote(_id: number, _changes: { deliveredBy?: string; remarks?: string }): Promise<void> {
-    throw new NotImplementedError('Editing delivery notes is not supported yet - see createDeliveryNote().');
+  async updateDeliveryNote(id: number, changes: { deliveredBy?: string; remarks?: string }): Promise<void> {
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { id };
+    if (changes.deliveredBy !== undefined) { sets.push('Comments = @deliveredBy'); params.deliveredBy = changes.deliveredBy; }
+    if (changes.remarks !== undefined) { sets.push('Remarks = @remarks'); params.remarks = changes.remarks; }
+    if (!sets.length) return;
+    await executeWrite(`UPDATE Delivery01 SET ${sets.join(', ')} WHERE ID = @id`, params);
   }
 
   /** Real stored procedure (not in DB_CONNECTION_SPEC_v12.md's catalog, but confirmed to

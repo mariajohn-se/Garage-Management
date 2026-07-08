@@ -1,6 +1,11 @@
-import { queryView, queryViewPaginated, executeWrite } from '../db/callProcedure';
+import mssql from 'mssql';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
 import { SalesOrder, OrderLineItem } from '../models/Sales';
 import { NotImplementedError } from '../utils/errors';
+
+function lineAmount(item: OrderLineItem): number {
+  return item.qty * item.rate - (item.discount ?? 0);
+}
 
 /** VERIFIED against the live SalesOrdr01Sql view (76 columns, 22835 real rows). */
 
@@ -107,29 +112,95 @@ export class OrderRepository {
   }
 
   /**
-   * BLOCKED: SalesOrdr01/02 use a Ccode+yr partitioned Ordr numbering scheme plus tax/discount
-   * computation (Tda/Txa/Amount) that isn't documented anywhere - guessing it risks corrupting
-   * 22835 rows of real sales-order data and any downstream invoicing/ledger totals that depend
-   * on it. Needs the real numbering/computation rules from someone who knows this legacy app.
+   * VERIFIED FINDING (2026-07-08): SalesOrdr01.yr is always '' in live data (not a real
+   * partition key), and the Ordr-vs-ID offset drifts unpredictably across 20 years of history
+   * with no fixed formula - they're two independently-incrementing legacy counters, not one
+   * derived from the other, so each gets its own MAX+1 (same pattern as Customer/Supplier).
+   * SalesOrdr02 detail rows key off the header's own ID (verified: every real row has
+   * detail.ID = header.ID, not a separate sequence) plus a per-order line counter (Srl).
+   * The order form collects no tax/discount input, so Amount is plain Qty*Rate (minus the
+   * optional per-line discount field, unused by the current UI but supported by the API type).
    */
-  async create(_input: {
+  async create(input: {
     custId: string;
     vehId: number | null;
     orderDate: string;
     custNote: string | null;
     items: OrderLineItem[];
   }): Promise<string> {
-    throw new NotImplementedError(
-      'Creating sales orders requires the real order-numbering and tax/discount computation rules from the ' +
-        'legacy app - not supported yet.'
-    );
+    return withNextNumericId('SalesOrdr01', 'ID', async (nextId, req, transaction) => {
+      const maxOrdrResult = await req.query(
+        `SELECT ISNULL(MAX(CASE WHEN Ordr NOT LIKE '%[^0-9]%' THEN CAST(Ordr AS INT) END), 0) AS maxOrdr
+         FROM SalesOrdr01 WITH (UPDLOCK, HOLDLOCK)`
+      );
+      const nextOrdr = String((maxOrdrResult.recordset[0]?.maxOrdr ?? 0) + 1);
+      const total = input.items.reduce((sum, item) => sum + lineAmount(item), 0);
+
+      await req
+        .input('ID', nextId)
+        .input('Ordr', nextOrdr)
+        .input('Ordt', input.orderDate)
+        .input('CustId', input.custId)
+        .input('VehId', input.vehId)
+        .input('CustNote', input.custNote)
+        .input('Total', total)
+        .input('Nett', total).query(`
+          INSERT INTO SalesOrdr01 (ID, Ccode, yr, Ordr, Ordt, CustId, VehId, CustNote, Total, Nett)
+          VALUES (@ID, '01', '', @Ordr, @Ordt, @CustId, @VehId, @CustNote, @Total, @Nett)
+        `);
+
+      let srl = 1;
+      for (const item of input.items) {
+        await new mssql.Request(transaction)
+          .input('ID', nextId)
+          .input('OrDr', nextOrdr)
+          .input('ItemCode', item.itemCode)
+          .input('Qty', item.qty)
+          .input('Rate', item.rate)
+          .input('Amount', lineAmount(item))
+          .input('Srl', srl++).query(`
+            INSERT INTO SalesOrdr02 (ID, OrDr, ItemCode, Qty, Rate, Amount, Srl, Tdr, Tda, UpdtStk)
+            VALUES (@ID, @OrDr, @ItemCode, @Qty, @Rate, @Amount, @Srl, 0, 0, 0)
+          `);
+      }
+
+      return nextOrdr;
+    });
   }
 
   async update(
-    _id: number,
-    _changes: { custId?: string; vehId?: number | null; custNote?: string; items?: OrderLineItem[] }
+    id: number,
+    changes: { custId?: string; vehId?: number | null; custNote?: string; items?: OrderLineItem[] }
   ): Promise<void> {
-    throw new NotImplementedError('Editing sales orders is not supported yet - see create().');
+    const sets: string[] = [];
+    const params: Record<string, unknown> = { id };
+    if (changes.custId !== undefined) { sets.push('CustId = @custId'); params.custId = changes.custId; }
+    if (changes.vehId !== undefined) { sets.push('VehId = @vehId'); params.vehId = changes.vehId; }
+    if (changes.custNote !== undefined) { sets.push('CustNote = @custNote'); params.custNote = changes.custNote; }
+    if (changes.items) {
+      const total = changes.items.reduce((sum, item) => sum + lineAmount(item), 0);
+      sets.push('Total = @total', 'Nett = @total');
+      params.total = total;
+    }
+    if (sets.length) {
+      await executeWrite(`UPDATE SalesOrdr01 SET ${sets.join(', ')} WHERE ID = @id`, params);
+    }
+
+    if (changes.items) {
+      const rows = await queryView<{ Ordr: string }>('SELECT Ordr FROM SalesOrdr01 WHERE ID = @id', { id });
+      const ordr = rows[0]?.Ordr;
+      if (ordr) {
+        await executeWrite('DELETE FROM SalesOrdr02 WHERE ID = @id', { id });
+        let srl = 1;
+        for (const item of changes.items) {
+          await executeWrite(
+            `INSERT INTO SalesOrdr02 (ID, OrDr, ItemCode, Qty, Rate, Amount, Srl, Tdr, Tda, UpdtStk)
+             VALUES (@id, @ordr, @itemCode, @qty, @rate, @amount, @srl, 0, 0, 0)`,
+            { id, ordr, itemCode: item.itemCode, qty: item.qty, rate: item.rate, amount: lineAmount(item), srl: srl++ }
+          );
+        }
+      }
+    }
   }
 
   /** BLOCKED: same reasoning - reassigning a paid/ordered job to a different customer needs real business rules. */

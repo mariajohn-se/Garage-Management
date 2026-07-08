@@ -86,26 +86,45 @@ export function EstimationDetailPage() {
           </tr>
           <tr>
             <td>Status</td>
-            <td>{estimation.approved ? 'Approved' : 'Pending Approval'}</td>
+            <td>
+              {estimation.approved ? 'Approved' : estimation.rejected ? 'Rejected' : 'Pending Approval'}
+            </td>
           </tr>
+          {estimation.rejected && estimation.rejectionComment && (
+            <tr>
+              <td>Rejection Reason</td>
+              <td>{estimation.rejectionComment}</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
       <h3 style={{ marginTop: 'var(--space-6)', marginBottom: 'var(--space-3)' }}>Line Items</h3>
       <table className="data-table" data-testid="estimation-item-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Unit Price</th>
+            <th>Labour</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
         <tbody>
           {estimation.lines.length === 0 && (
             <tr>
-              <td className="empty-state">No line item detail available.</td>
+              <td colSpan={5} className="empty-state">
+                No line item detail available.
+              </td>
             </tr>
           )}
           {estimation.lines.map((line, i) => (
             <tr key={i}>
-              <td>
-                <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontSize: 'var(--text-xs-size)' }}>
-                  {JSON.stringify(line)}
-                </pre>
-              </td>
+              <td>{line.description ?? '—'}</td>
+              <td>{line.qty ?? '—'}</td>
+              <td>{line.unitPrice ?? '—'}</td>
+              <td>{line.labourAmount ?? '—'}</td>
+              <td>{line.amount ?? '—'}</td>
             </tr>
           ))}
         </tbody>

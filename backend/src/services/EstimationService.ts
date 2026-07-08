@@ -11,7 +11,7 @@ export class EstimationService {
   async get(id: number) {
     const estimation = await estimationRepository.findById(id);
     if (!estimation) throw new NotFoundError('Estimation not found.');
-    const lines = await estimationRepository.getLines(estimation.jobCardNo ?? '').catch(() => []);
+    const lines = await estimationRepository.getLines(id).catch(() => []);
     return { ...estimation, lines };
   }
 
@@ -25,7 +25,7 @@ export class EstimationService {
     }
     const existing = await estimationRepository.findById(id);
     if (!existing) throw new NotFoundError('Estimation not found.');
-    await estimationRepository.setApproval(id, approved, remarks);
+    await estimationRepository.setApproval(id, approved, remarks, req.user!.username);
     await logUserEvent(req, {
       userId: req.user!.sub,
       userName: req.user!.username,

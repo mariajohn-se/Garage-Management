@@ -1,6 +1,7 @@
 import mssql from 'mssql';
 import { getPool } from './connection';
 import { logger } from '../utils/logger';
+import { ValidationError } from '../utils/errors';
 
 /**
  * Execute a SQL Server stored procedure with named parameters.
@@ -99,8 +100,21 @@ export async function executeWrite<T = any>(sql: string, inputParams: Record<str
       req.input(key, value as any);
     }
   });
-  const result = await req.query(sql);
-  return (result.recordset as unknown as T[]) ?? [];
+  try {
+    const result = await req.query(sql);
+    return (result.recordset as unknown as T[]) ?? [];
+  } catch (err) {
+    // SQL Server error 547 = FOREIGN KEY/REFERENCE/CHECK constraint violation - a real,
+    // legitimate business rule ("this row is still in use elsewhere"), not a bug. Surface it
+    // as a clear 400 instead of letting a raw SQL error fall through to a generic 500.
+    if ((err as { number?: number }).number === 547) {
+      throw new ValidationError(
+        'Cannot complete this action because other records still reference it.',
+        'REFERENCED_BY_OTHER_RECORDS'
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -118,7 +132,7 @@ export async function executeWrite<T = any>(sql: string, inputParams: Record<str
 export async function withNextNumericId<T>(
   table: string,
   column: string,
-  insert: (nextId: number, transactionRequest: mssql.Request) => Promise<T>
+  insert: (nextId: number, transactionRequest: mssql.Request, transaction: mssql.Transaction) => Promise<T>
 ): Promise<T> {
   const pool = await getPool();
   const transaction = new mssql.Transaction(pool);
@@ -130,7 +144,7 @@ export async function withNextNumericId<T>(
        FROM ${table} WITH (UPDLOCK, HOLDLOCK)`
     );
     const nextId = (maxResult.recordset[0]?.maxId ?? 0) + 1;
-    const result = await insert(nextId, new mssql.Request(transaction));
+    const result = await insert(nextId, new mssql.Request(transaction), transaction);
     await transaction.commit();
     return result;
   } catch (err) {

@@ -138,10 +138,15 @@ the compose stack.
   status; the Supplier list/form don't show or filter by status as a result.
 - **`AgewiseSummary` (the real, documented SP for age-bucket reporting) throws a live SQL
   error** - "Cannot resolve the collation conflict between Latin1_General_CI_AS and
-  SQL_Latin1_General_CP1_CI_AS" - for every parameter combination tried. This is a pre-existing
-  bug inside the procedure itself (comparing columns of different collations), not something
-  introduced or fixable here. The `/customers/agewise` page and endpoint are wired correctly
-  and surface this error honestly rather than faking report data.
+  SQL_Latin1_General_CP1_CI_AS" - traced (2026-07-08) to the SQL Server instance's tempdb
+  defaulting to a different collation than the `autodealer` database; the procedure's `#tmp1`/
+  `#tmp2` temp tables inherit tempdb's collation, so every join against a real table conflicts.
+  Fixing the procedure itself is still off the table (DB-Preserve mode), but `/customers/agewise`
+  now bypasses it entirely: `CustomerRepository.agewise()` reimplements its Customer-mode aging
+  math (verified against the procedure's own source) as CTEs, which take their collation from
+  the real source columns instead of tempdb, sidestepping the conflict. Other procedures hit by
+  the same tempdb/database collation mismatch (`SP_MarginRpt`, `sp_LPOAnalysis`, `SPACTREEVIEW`,
+  `AcSummary`) have not been reimplemented and remain blocked.
 - **Merge/duplicate-resolution UIs, tagging/segmentation, and bulk import for
   Customers/Suppliers were not built this session** - deprioritized given the volume of Phase 3
   and, for merge/import specifically, the risk of running write operations against 6565 real
