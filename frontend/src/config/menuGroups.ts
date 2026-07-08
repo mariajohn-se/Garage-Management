@@ -12,15 +12,6 @@ export interface MenuGroup {
 
 export const MENU_GROUPS: MenuGroup[] = [
   {
-    title: 'My Account',
-    icon: '\u{1F464}',
-    links: [
-      { label: 'My Profile', to: '/user-info' },
-      { label: 'Change Password', to: '/change-password' },
-      { label: 'System Health', to: '/health' }
-    ]
-  },
-  {
     title: 'Customers & Suppliers',
     icon: '\u{1F91D}',
     links: [

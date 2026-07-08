@@ -140,18 +140,30 @@ export class JobRepository {
     await executeWrite('UPDATE jobInProgress SET StatusID = @statusId WHERE ID = @id', { id, statusId });
   }
 
-  async listWorkInProgress(filters: { page: number; limit: number }): Promise<{
+  async listWorkInProgress(filters: { ordr?: string; empName?: string; page: number; limit: number }): Promise<{
     items: WorkInProgressItem[];
     total: number;
   }> {
-    const totalRows = await queryView<{ cnt: number }>('SELECT COUNT(*) AS cnt FROM WorkInProgressSql');
+    const conditions: string[] = [];
+    const params: Record<string, unknown> = {};
+    if (filters.ordr) {
+      conditions.push('Ordr = @ordr');
+      params.ordr = filters.ordr;
+    }
+    if (filters.empName) {
+      conditions.push('EmpName LIKE @empName');
+      params.empName = `%${filters.empName}%`;
+    }
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const totalRows = await queryView<{ cnt: number }>(`SELECT COUNT(*) AS cnt FROM WorkInProgressSql ${where}`, params);
     const total = totalRows[0]?.cnt ?? 0;
     const rows = await queryViewPaginated<WipRow>(
       WIP_COLUMNS,
       'WorkInProgressSql',
-      '',
+      where,
       'ID DESC',
-      {},
+      params,
       filters.page,
       filters.limit
     );

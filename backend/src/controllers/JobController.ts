@@ -44,7 +44,14 @@ export class JobController {
 
   async listWorkInProgress(req: Request, res: Response, next: NextFunction) {
     try {
-      res.json(await jobService.listWorkInProgress(parsePaging(req)));
+      const { ordr, empName } = req.query;
+      res.json(
+        await jobService.listWorkInProgress({
+          ordr: ordr as string | undefined,
+          empName: empName as string | undefined,
+          ...parsePaging(req)
+        })
+      );
     } catch (err) {
       next(err);
     }

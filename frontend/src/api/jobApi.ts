@@ -103,7 +103,7 @@ export const jobApi = {
   get: (id: number) => apiRequest<JobListItem>(`/jobs/${id}`),
   updateStatus: (id: number, statusId: number) =>
     apiRequest<{ message: string }>(`/jobs/${id}/status`, { method: 'PUT', body: { statusId } }),
-  listWorkInProgress: (filters: { page?: number; limit?: number }) =>
+  listWorkInProgress: (filters: { ordr?: string; empName?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<WorkInProgressItem>>(`/jobs/work-in-progress${qs(filters)}`),
   listAssigned: (filters: { ordr?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<AssignedJobItem>>(`/jobs/assigned${qs(filters)}`),

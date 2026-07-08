@@ -28,7 +28,7 @@ export class JobService {
     });
   }
 
-  async listWorkInProgress(filters: { page: number; limit: number }) {
+  async listWorkInProgress(filters: { ordr?: string; empName?: string; page: number; limit: number }) {
     return jobRepository.listWorkInProgress(filters);
   }
 

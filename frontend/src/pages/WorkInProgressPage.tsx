@@ -8,6 +8,8 @@ export function WorkInProgressPage() {
   const [items, setItems] = useState<WorkInProgressItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [ordr, setOrdr] = useState('');
+  const [empName, setEmpName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,18 +17,37 @@ export function WorkInProgressPage() {
     setLoading(true);
     setError(null);
     jobApi
-      .listWorkInProgress({ page, limit: LIMIT })
+      .listWorkInProgress({ ordr, empName, page, limit: LIMIT })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load work in progress. Please try again.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [ordr, empName, page]);
 
   return (
     <div className="section-card" data-testid="workstatus-table">
       <h2>Work In Progress</h2>
+
+      <div className="filter-bar">
+        <input
+          placeholder="Order #..."
+          value={ordr}
+          onChange={(e) => {
+            setPage(1);
+            setOrdr(e.target.value);
+          }}
+        />
+        <input
+          placeholder="Employee..."
+          value={empName}
+          onChange={(e) => {
+            setPage(1);
+            setEmpName(e.target.value);
+          }}
+        />
+      </div>
 
       {error && <div className="error-state">{error}</div>}
 
