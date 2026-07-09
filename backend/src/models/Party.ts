@@ -60,3 +60,12 @@ export interface AgewiseBucket {
   bucket: string;
   amount: number;
 }
+
+export interface CustomerVisitSummary {
+  custId: string;
+  name: string;
+  phone: string | null;
+  fax: string | null;
+  email: string | null;
+  visitCount: number;
+}

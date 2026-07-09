@@ -70,6 +70,14 @@ export class CustomerController {
     }
   }
 
+  async visitSummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await customerService.visitSummary());
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async help(req: Request, res: Response, next: NextFunction) {
     try {
       const { q } = req.query;

@@ -68,7 +68,11 @@ export const customerApi = {
       body: { csv }
     }),
   agewise: (asOfDate: string) =>
-    apiRequest<Array<{ bucket: string; amount: number }>>(`/customers/agewise${qs({ asOfDate })}`)
+    apiRequest<Array<{ bucket: string; amount: number }>>(`/customers/agewise${qs({ asOfDate })}`),
+  visitSummary: () =>
+    apiRequest<
+      Array<{ custId: string; name: string; phone: string | null; fax: string | null; email: string | null; visitCount: number }>
+    >('/customers/visit-summary')
 };
 
 export const supplierApi = {

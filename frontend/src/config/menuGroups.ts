@@ -18,6 +18,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Customers', to: '/customers' },
       { label: 'Customer Lookup', to: '/customers/help' },
       { label: 'Customer Agewise Report', to: '/customers/agewise', requires: 'privileged' },
+      { label: 'Customer Visit Report', to: '/customers/visit-summary', requires: 'privileged' },
       { label: 'Suppliers', to: '/suppliers' },
       { label: 'Supplier Lookup', to: '/suppliers/help' },
       { label: 'Vehicles', to: '/vehicles' }

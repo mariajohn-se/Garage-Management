@@ -1,5 +1,5 @@
-import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
-import { Customer, AgewiseBucket } from '../models/Party';
+import { queryView, queryViewPaginated, executeWrite, withNextNumericId, callProcedure } from '../db/callProcedure';
+import { Customer, AgewiseBucket, CustomerVisitSummary } from '../models/Party';
 
 /**
  * VERIFIED against the live CustomerSql view (30 columns, 6565 real rows in production).
@@ -266,6 +266,30 @@ export class CustomerRepository {
       { bucket: '91-120 Days', amount: r.D120 ?? 0 },
       { bucket: 'Over 120 Days', amount: r.D360 ?? 0 }
     ];
+  }
+
+  /**
+   * VERIFIED (2026-07-08): real, parameterless SP - counts bills per customer (Cnt), the real
+   * backing for the PRD's "Customer Visit Report"/CRM log. 6,566 rows, top customers by visit
+   * frequency are real recognizable accounts (insurers, fleet accounts), not test data.
+   */
+  async visitSummary(): Promise<CustomerVisitSummary[]> {
+    const rows = await callProcedure<{
+      CustId: string;
+      CustName: string | null;
+      Phone1: string | null;
+      Fax: string | null;
+      Email: string | null;
+      Cnt: number | null;
+    }>('spCustomerVisitReport');
+    return rows.map((r) => ({
+      custId: r.CustId,
+      name: r.CustName ?? '',
+      phone: r.Phone1,
+      fax: r.Fax,
+      email: r.Email || null,
+      visitCount: r.Cnt ?? 0
+    }));
   }
 }
 

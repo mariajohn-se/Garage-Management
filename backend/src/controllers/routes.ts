@@ -75,6 +75,7 @@ apiRouter.get('/action-logs', ...supervisorUp, userController.actionLog.bind(use
 apiRouter.get('/customers', requireAuth, customerController.list.bind(customerController));
 apiRouter.get('/customers/help', requireAuth, customerController.help.bind(customerController));
 apiRouter.get('/customers/agewise', ...supervisorUp, customerController.agewise.bind(customerController));
+apiRouter.get('/customers/visit-summary', ...supervisorUp, customerController.visitSummary.bind(customerController));
 apiRouter.get('/customers/export', ...supervisorUp, customerController.exportCsv.bind(customerController));
 apiRouter.post('/customers/import', ...supervisorUp, customerController.importCsv.bind(customerController));
 apiRouter.post('/customers', requireAuth, customerController.create.bind(customerController));

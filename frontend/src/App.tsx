@@ -21,6 +21,7 @@ import { CustomerListPage } from './pages/CustomerListPage';
 import { CustomerFormPage } from './pages/CustomerFormPage';
 import { CustomerHelpPage } from './pages/CustomerHelpPage';
 import { CustomerAgewisePage } from './pages/CustomerAgewisePage';
+import { CustomerVisitReportPage } from './pages/CustomerVisitReportPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
 import { SupplierHelpPage } from './pages/SupplierHelpPage';
@@ -202,6 +203,14 @@ export function App() {
               element={
                 <ProtectedRoute roles={[...SUPERVISOR_UP]}>
                   <CustomerAgewisePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/customers/visit-summary"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <CustomerVisitReportPage />
                 </ProtectedRoute>
               }
             />

@@ -62,6 +62,10 @@ export class CustomerService {
     return customerRepository.agewise(asOfDate);
   }
 
+  async visitSummary() {
+    return customerRepository.visitSummary();
+  }
+
   async bulkImportCustomers(
     req: Request,
     rows: Array<Omit<Customer, 'custId' | 'isActive'>>
