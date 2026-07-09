@@ -12,6 +12,7 @@ import { bookingController } from './BookingController';
 import { salesReturnController } from './SalesReturnController';
 import { crDrNoteController } from './CrDrNoteController';
 import { insuranceInvoiceController } from './InsuranceInvoiceController';
+import { messageController } from './MessageController';
 import { jobController } from './JobController';
 import { jobStatusMasterController } from './JobStatusMasterController';
 import { orderController } from './OrderController';
@@ -141,6 +142,11 @@ apiRouter.get('/cr-dr-notes/:id', ...supervisorUp, crDrNoteController.get.bind(c
 apiRouter.get('/insurance-invoices', requireAuth, insuranceInvoiceController.list.bind(insuranceInvoiceController));
 apiRouter.post('/insurance-invoices', requireAuth, insuranceInvoiceController.create.bind(insuranceInvoiceController));
 apiRouter.get('/insurance-invoices/:id', requireAuth, insuranceInvoiceController.get.bind(insuranceInvoiceController));
+
+apiRouter.get('/messages/unread-count', requireAuth, messageController.unreadCount.bind(messageController));
+apiRouter.get('/messages', requireAuth, messageController.inbox.bind(messageController));
+apiRouter.post('/messages', requireAuth, messageController.send.bind(messageController));
+apiRouter.put('/messages/:id/read', requireAuth, messageController.markRead.bind(messageController));
 
 apiRouter.get('/jobs/work-in-progress', requireAuth, jobController.listWorkInProgress.bind(jobController));
 apiRouter.get('/jobs/assigned', requireAuth, jobController.listAssigned.bind(jobController));

@@ -33,6 +33,11 @@ export const MENU_GROUPS: MenuGroup[] = [
     ]
   },
   {
+    title: 'Messaging',
+    icon: '\u{1F4E8}',
+    links: [{ label: 'Messages', to: '/messages' }]
+  },
+  {
     title: 'Jobs & Estimation',
     icon: '\u{1F527}',
     links: [

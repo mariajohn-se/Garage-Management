@@ -30,6 +30,7 @@ import { CrDrNoteListPage } from './pages/CrDrNoteListPage';
 import { CrDrNoteFormPage } from './pages/CrDrNoteFormPage';
 import { InsuranceInvoiceListPage } from './pages/InsuranceInvoiceListPage';
 import { InsuranceInvoiceFormPage } from './pages/InsuranceInvoiceFormPage';
+import { MessagesPage } from './pages/MessagesPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
 import { SupplierHelpPage } from './pages/SupplierHelpPage';
@@ -323,6 +324,7 @@ export function App() {
             <Route path="/sales-returns/new" element={<SalesReturnFormPage />} />
             <Route path="/insurance-invoices" element={<InsuranceInvoiceListPage />} />
             <Route path="/insurance-invoices/new" element={<InsuranceInvoiceFormPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
             <Route
               path="/cr-dr-notes"
               element={
