@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import { customerApi, Customer } from '../api/partyApi';
 import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
+import { useAuth } from '../hooks/useAuth';
 
 export function CustomerListPage() {
+  const { session } = useAuth();
+  const isAdmin = !!session?.roles.some((r) => r === 'Administrator');
   const [items, setItems] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -42,6 +45,18 @@ export function CustomerListPage() {
       URL.revokeObjectURL(url);
     } catch {
       setError('Export failed. Please try again.');
+    }
+  }
+
+  async function handleDelete(customer: Customer) {
+    if (!window.confirm(`Delete ${customer.name}? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await customerApi.remove(customer.custId);
+      setBanner(`${customer.name} was deleted.`);
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Unable to delete customer. Please try again.');
     }
   }
 
@@ -149,7 +164,7 @@ export function CustomerListPage() {
                     <td>{c.area ?? '—'}</td>
                     <td>{c.emirate ?? '—'}</td>
                     <td>{c.isActive ? 'Active' : 'Inactive'}</td>
-                    <td>
+                    <td style={{ display: 'flex', gap: 'var(--space-2)' }}>
                       <Link
                         className="btn-outline"
                         data-testid={`cust-row-${i}-edit`}
@@ -157,6 +172,15 @@ export function CustomerListPage() {
                       >
                         Edit
                       </Link>
+                      {isAdmin && (
+                        <button
+                          className="btn-danger"
+                          data-testid={`cust-row-${i}-delete`}
+                          onClick={() => handleDelete(c)}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
