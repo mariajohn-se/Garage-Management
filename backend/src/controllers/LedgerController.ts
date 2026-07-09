@@ -72,6 +72,16 @@ export class LedgerController {
     }
   }
 
+  async openingBalance(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { ac, asOfDate } = req.query;
+      if (!ac || !asOfDate) throw new ValidationError('ac and asOfDate are required.');
+      res.json(await ledgerService.openingBalance(ac as string, asOfDate as string));
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listBulkJournals(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await ledgerService.listBulkJournals(parsePaging(req)));

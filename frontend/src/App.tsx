@@ -83,6 +83,7 @@ import { AccountHeadDetailPage } from './pages/AccountHeadDetailPage';
 import { AccountHeadTreePage } from './pages/AccountHeadTreePage';
 import { TrialBalanceReportPage } from './pages/TrialBalanceReportPage';
 import { BalanceSheetReportPage } from './pages/BalanceSheetReportPage';
+import { OpeningBalanceLookupPage } from './pages/OpeningBalanceLookupPage';
 import { BulkJournalsPage } from './pages/BulkJournalsPage';
 import { BulkPdcReceiptsPage } from './pages/BulkPdcReceiptsPage';
 import { BulkPdcsPage } from './pages/BulkPdcsPage';
@@ -410,6 +411,14 @@ export function App() {
               element={
                 <ProtectedRoute roles={[...SUPERVISOR_UP]}>
                   <BalanceSheetReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ledger/opening-balance"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <OpeningBalanceLookupPage />
                 </ProtectedRoute>
               }
             />

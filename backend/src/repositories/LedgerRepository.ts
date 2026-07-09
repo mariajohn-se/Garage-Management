@@ -7,7 +7,8 @@ import {
   BulkJournalEntry,
   BulkPdcEntry,
   JournalVoucherInput,
-  BalanceSheetRow
+  BalanceSheetRow,
+  OpeningBalanceResult
 } from '../models/Ledger';
 import { NotImplementedError } from '../utils/errors';
 
@@ -168,6 +169,29 @@ export class LedgerRepository {
       debit: r.SumDr ?? 0,
       credit: r.SumCr ?? 0
     }));
+  }
+
+  /**
+   * VERIFIED (2026-07-09): "Opening Balance Entry" in the PRD implies a data-entry screen, but
+   * there is no stored opening-balance value anywhere in the schema - Opening_Balance is a real
+   * procedure that COMPUTES it live by summing ACDETAILS debit/credit before the given date
+   * (spot-checked: OpClosing = OpDebt - OpCred exactly, and matches AcOpeningBalance's single
+   * BalAmt figure for the same account/date). This is a lookup, not a write - there is nothing
+   * to "enter" under DB-preserve mode.
+   */
+  async openingBalance(ac: string, asOfDate: string): Promise<OpeningBalanceResult> {
+    const rows = await callProcedure<{ OpDebt: number | null; OpCred: number | null; OpClosing: number | null }>(
+      'Opening_Balance',
+      { mDate: asOfDate, mAc: ac, mActualDate: 1 }
+    );
+    const row = rows[0];
+    return {
+      ac,
+      asOfDate,
+      openingDebit: row?.OpDebt ?? 0,
+      openingCredit: row?.OpCred ?? 0,
+      closing: row?.OpClosing ?? 0
+    };
   }
 
   computeTrialBalanceSummary(rows: TrialBalanceRow[]): TrialBalanceSummary {

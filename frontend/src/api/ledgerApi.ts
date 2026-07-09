@@ -71,6 +71,14 @@ export interface BalanceSheetRow {
   credit: number;
 }
 
+export interface OpeningBalanceResult {
+  ac: string;
+  asOfDate: string;
+  openingDebit: number;
+  openingCredit: number;
+  closing: number;
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -102,6 +110,9 @@ export const ledgerApi = {
 
   balanceSheet: (fromDate: string, toDate: string) =>
     apiRequest<BalanceSheetRow[]>(`/ledger/balance-sheet${qs({ fromDate, toDate })}`),
+
+  openingBalance: (ac: string, asOfDate: string) =>
+    apiRequest<OpeningBalanceResult>(`/ledger/opening-balance${qs({ ac, asOfDate })}`),
 
   listBulkJournals: (filters: { page?: number; limit?: number }) =>
     apiRequest<Paged<BulkJournalEntry>>(`/ledger/bulk-journals${qs(filters)}`),

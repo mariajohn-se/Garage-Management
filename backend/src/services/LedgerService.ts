@@ -58,6 +58,14 @@ export class LedgerService {
     return ledgerRepository.balanceSheet(fromDate, toDate);
   }
 
+  async openingBalance(ac: string, asOfDate: string) {
+    if (!ac?.trim()) throw new ValidationError('Account code is required.');
+    if (!asOfDate) throw new ValidationError('As-of date is required.');
+    const head = await ledgerRepository.getAccountHead(ac);
+    if (!head) throw new NotFoundError('Account head not found.');
+    return ledgerRepository.openingBalance(ac, asOfDate);
+  }
+
   async listBulkJournals(filters: { page: number; limit: number }) {
     return ledgerRepository.listBulkJournals(filters);
   }

@@ -68,3 +68,11 @@ export interface BalanceSheetRow {
   debit: number;
   credit: number;
 }
+
+export interface OpeningBalanceResult {
+  ac: string;
+  asOfDate: string;
+  openingDebit: number;
+  openingCredit: number;
+  closing: number;
+}
