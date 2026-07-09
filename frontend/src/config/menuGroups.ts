@@ -104,6 +104,7 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Account Heads', to: '/ledger/account-heads' },
       { label: 'Account Head Tree', to: '/ledger/account-heads/tree' },
       { label: 'Trial Balance', to: '/ledger/trial-balance', requires: 'privileged' },
+      { label: 'Balance Sheet', to: '/ledger/balance-sheet', requires: 'privileged' },
       { label: 'Bulk Journal Entries', to: '/ledger/bulk-journals', requires: 'privileged' },
       { label: 'Bulk PDC Receipts', to: '/ledger/bulk-pdc-receipts', requires: 'privileged' },
       { label: 'Bulk PDCs', to: '/ledger/bulk-pdcs', requires: 'privileged' }

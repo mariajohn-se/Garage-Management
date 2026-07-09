@@ -61,6 +61,16 @@ export interface JournalVoucherInput {
   lines: JournalVoucherLineInput[];
 }
 
+export interface BalanceSheetRow {
+  codes: string;
+  description: string | null;
+  treeHead: string | null;
+  depth: number;
+  isGroup: boolean;
+  debit: number;
+  credit: number;
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -89,6 +99,9 @@ export const ledgerApi = {
     apiRequest<{ rows: TrialBalanceRow[]; summary: TrialBalanceSummary }>(
       `/ledger/trial-balance${qs({ fromDate, toDate })}`
     ),
+
+  balanceSheet: (fromDate: string, toDate: string) =>
+    apiRequest<BalanceSheetRow[]>(`/ledger/balance-sheet${qs({ fromDate, toDate })}`),
 
   listBulkJournals: (filters: { page?: number; limit?: number }) =>
     apiRequest<Paged<BulkJournalEntry>>(`/ledger/bulk-journals${qs(filters)}`),

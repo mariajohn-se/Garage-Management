@@ -62,6 +62,16 @@ export class LedgerController {
     }
   }
 
+  async balanceSheet(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fromDate, toDate } = req.query;
+      if (!fromDate || !toDate) throw new ValidationError('fromDate and toDate are required.');
+      res.json(await ledgerService.balanceSheet(fromDate as string, toDate as string));
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listBulkJournals(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await ledgerService.listBulkJournals(parsePaging(req)));

@@ -82,6 +82,7 @@ import { AccountHeadListPage } from './pages/AccountHeadListPage';
 import { AccountHeadDetailPage } from './pages/AccountHeadDetailPage';
 import { AccountHeadTreePage } from './pages/AccountHeadTreePage';
 import { TrialBalanceReportPage } from './pages/TrialBalanceReportPage';
+import { BalanceSheetReportPage } from './pages/BalanceSheetReportPage';
 import { BulkJournalsPage } from './pages/BulkJournalsPage';
 import { BulkPdcReceiptsPage } from './pages/BulkPdcReceiptsPage';
 import { BulkPdcsPage } from './pages/BulkPdcsPage';
@@ -401,6 +402,14 @@ export function App() {
               element={
                 <ProtectedRoute roles={[...SUPERVISOR_UP]}>
                   <TrialBalanceReportPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ledger/balance-sheet"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <BalanceSheetReportPage />
                 </ProtectedRoute>
               }
             />

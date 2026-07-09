@@ -58,3 +58,13 @@ export interface JournalVoucherInput {
   narration: string;
   lines: JournalVoucherLineInput[];
 }
+
+export interface BalanceSheetRow {
+  codes: string;
+  description: string | null;
+  treeHead: string | null;
+  depth: number;
+  isGroup: boolean;
+  debit: number;
+  credit: number;
+}

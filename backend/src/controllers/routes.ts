@@ -259,6 +259,7 @@ apiRouter.get('/vouchers/:id', requireAuth, bankingController.getVoucher.bind(ba
 // Literal sub-paths (tree, trial-balance, bulk-*) registered before /ledger/account-heads/:codes.
 apiRouter.get('/ledger/account-heads/tree', requireAuth, ledgerController.accountHeadTree.bind(ledgerController));
 apiRouter.get('/ledger/trial-balance', ...supervisorUp, ledgerController.trialBalance.bind(ledgerController));
+apiRouter.get('/ledger/balance-sheet', ...supervisorUp, ledgerController.balanceSheet.bind(ledgerController));
 apiRouter.get('/ledger/bulk-journals', ...supervisorUp, ledgerController.listBulkJournals.bind(ledgerController));
 apiRouter.get(
   '/ledger/bulk-pdc-receipts',

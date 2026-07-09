@@ -6,7 +6,8 @@ import {
   TrialBalanceSummary,
   BulkJournalEntry,
   BulkPdcEntry,
-  JournalVoucherInput
+  JournalVoucherInput,
+  BalanceSheetRow
 } from '../models/Ledger';
 import { NotImplementedError } from '../utils/errors';
 
@@ -131,6 +132,42 @@ export class LedgerRepository {
       Cred: number | null;
     }>('TrialBalance', { mDate1: fromDate, mDate2: toDate });
     return rows.map((r) => ({ ac: r.AC, description: r.DESCRIPTION, debit: r.Debt, credit: r.Cred }));
+  }
+
+  /**
+   * VERIFIED (2026-07-09): AcSummary_balansheet is a real, working procedure - re-tested live
+   * with a full parameter set (8,068 rows, 6,556 with a nonzero SumCr/SumDr). It returns the
+   * whole chart-of-accounts tree (same TreeHD materialized-path shape as ACHEADSQL.GroupTree),
+   * not just balance-sheet leaf accounts, with per-node cumulative debit/credit sums for the
+   * given date range. Group=1 marks a structural group node (e.g. "ASSETS", "4571"); Group=0
+   * marks a real postable account. AcSummary_balansheet_New (the newer-looking sibling
+   * procedure) returns 0 rows against the same parameters and was not used.
+   */
+  async balanceSheet(fromDate: string, toDate: string): Promise<BalanceSheetRow[]> {
+    const rows = await callProcedure<{
+      TreeHD: string | null;
+      CODES: string;
+      DESCRIPTION: string | null;
+      Group: number | null;
+      SumDr: number | null;
+      SumCr: number | null;
+    }>('AcSummary_balansheet', {
+      mAc: '',
+      mDate1: fromDate,
+      mDate2: toDate,
+      mGroupID: 0,
+      DateOption: 1,
+      mFilterFld: ''
+    });
+    return rows.map((r) => ({
+      codes: r.CODES,
+      description: r.DESCRIPTION,
+      treeHead: r.TreeHD,
+      depth: r.TreeHD ? r.TreeHD.split(',').length - 1 : 0,
+      isGroup: r.Group === 1,
+      debit: r.SumDr ?? 0,
+      credit: r.SumCr ?? 0
+    }));
   }
 
   computeTrialBalanceSummary(rows: TrialBalanceRow[]): TrialBalanceSummary {

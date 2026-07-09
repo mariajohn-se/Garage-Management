@@ -53,6 +53,11 @@ export class LedgerService {
     return { rows, summary: ledgerRepository.computeTrialBalanceSummary(rows) };
   }
 
+  async balanceSheet(fromDate: string, toDate: string) {
+    if (!fromDate || !toDate) throw new ValidationError('From date and to date are required.');
+    return ledgerRepository.balanceSheet(fromDate, toDate);
+  }
+
   async listBulkJournals(filters: { page: number; limit: number }) {
     return ledgerRepository.listBulkJournals(filters);
   }
