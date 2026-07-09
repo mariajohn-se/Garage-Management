@@ -9,9 +9,10 @@ function groupContainsPath(group: (typeof MENU_GROUPS)[number], pathname: string
 
 /**
  * NavLink's own prefix matching (isActive) lights up EVERY link whose `to` is a prefix of the
- * current path - e.g. both "Sales Orders" (/orders) and "Order Lookup" (/orders/help) match
- * simultaneously while on /orders/help, since /orders/help starts with /orders too. Only the
- * longest (most specific) matching link across all groups should actually highlight.
+ * current path - e.g. both "Purchase Delivery Orders" (/purchases/delivery-orders) and "Pending
+ * Delivery Orders" (/purchases/delivery-orders/pending) match simultaneously while on the pending
+ * page, since it starts with the same prefix. Only the longest (most specific) matching link
+ * across all groups should actually highlight.
  */
 function findMostSpecificMatch(groups: (typeof MENU_GROUPS)[number][], pathname: string): string | null {
   let best: string | null = null;

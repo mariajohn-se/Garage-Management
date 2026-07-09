@@ -23,11 +23,6 @@ export class OrderService {
     return order;
   }
 
-  async help(query: string) {
-    if (!query?.trim()) return [];
-    return orderRepository.search(query.trim());
-  }
-
   /** BR-52: customer, date, and at least one item with qty > 0 are required to submit. */
   private validateOrderInput(input: { custId?: string; orderDate?: string; items?: OrderLineItem[] }): void {
     if (!input.custId?.trim()) throw new ValidationError('Customer is required.');

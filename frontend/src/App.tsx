@@ -32,7 +32,6 @@ import { InsuranceInvoiceFormPage } from './pages/InsuranceInvoiceFormPage';
 import { MessagesPage } from './pages/MessagesPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
-import { SupplierHelpPage } from './pages/SupplierHelpPage';
 import { VehicleListPage } from './pages/VehicleListPage';
 import { VehicleFormPage } from './pages/VehicleFormPage';
 import { AttachmentsPage } from './pages/AttachmentsPage';
@@ -59,7 +58,6 @@ import { PurchaseReturnsPage } from './pages/PurchaseReturnsPage';
 import { PurchaseVehicleLinkPage } from './pages/PurchaseVehicleLinkPage';
 import { OrderFormPage } from './pages/OrderFormPage';
 import { DeliveryNoteFormPage } from './pages/DeliveryNoteFormPage';
-import { OrderHelpPage } from './pages/OrderHelpPage';
 import { OrderCustomerChangePage } from './pages/OrderCustomerChangePage';
 import { SalesBillReportPage } from './pages/SalesBillReportPage';
 import { SalesMarginReportPage } from './pages/SalesMarginReportPage';
@@ -225,7 +223,6 @@ export function App() {
             <Route path="/customers/:custId/edit" element={<CustomerFormPage />} />
 
             <Route path="/suppliers" element={<SupplierListPage />} />
-            <Route path="/suppliers/help" element={<SupplierHelpPage />} />
             <Route path="/suppliers/new" element={<SupplierFormPage />} />
             <Route path="/suppliers/:suppId/edit" element={<SupplierFormPage />} />
 
@@ -262,7 +259,6 @@ export function App() {
             />
 
             <Route path="/orders" element={<OrderListPage />} />
-            <Route path="/orders/help" element={<OrderHelpPage />} />
             <Route path="/orders/new" element={<OrderFormPage />} />
             <Route path="/orders/:orderId" element={<OrderDetailPage />} />
             <Route path="/orders/:orderId/edit" element={<OrderFormPage />} />

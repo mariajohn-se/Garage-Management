@@ -19,7 +19,6 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Customer Agewise Report', to: '/customers/agewise', requires: 'privileged' },
       { label: 'Customer Visit Report', to: '/customers/visit-summary', requires: 'privileged' },
       { label: 'Suppliers', to: '/suppliers' },
-      { label: 'Supplier Lookup', to: '/suppliers/help' },
       { label: 'Vehicles', to: '/vehicles' }
     ]
   },
@@ -53,7 +52,6 @@ export const MENU_GROUPS: MenuGroup[] = [
     icon: '\u{1F4B0}',
     links: [
       { label: 'Sales Orders', to: '/orders' },
-      { label: 'Order Lookup', to: '/orders/help' },
       { label: 'Delivery Notes', to: '/delivery-notes' },
       { label: 'Sales Invoices', to: '/sales' },
       { label: 'Proformas', to: '/proformas' },

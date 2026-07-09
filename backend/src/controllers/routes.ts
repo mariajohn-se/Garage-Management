@@ -171,7 +171,6 @@ apiRouter.put('/jobs/:id/status', requireAuth, jobController.updateStatus.bind(j
 // SalesReturn tables don't exist in the schema (verified) - no sales-return routes.
 // PendingOrder view exists but throws a live binding error - no pending-orders route.
 apiRouter.get('/orders/deliveries', requireAuth, orderController.deliveries.bind(orderController));
-apiRouter.get('/orders/help', requireAuth, orderController.help.bind(orderController));
 apiRouter.get('/orders', requireAuth, orderController.list.bind(orderController));
 apiRouter.post('/orders', requireAuth, orderController.create.bind(orderController));
 apiRouter.get('/orders/:id', requireAuth, orderController.get.bind(orderController));

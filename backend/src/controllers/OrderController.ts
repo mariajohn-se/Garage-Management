@@ -25,15 +25,6 @@ export class OrderController {
     }
   }
 
-  async help(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { q } = req.query;
-      res.json(await orderService.help((q as string | undefined) ?? ''));
-    } catch (err) {
-      next(err);
-    }
-  }
-
   async get(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await orderService.get(Number(req.params.id)));

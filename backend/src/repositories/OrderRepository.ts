@@ -103,14 +103,6 @@ export class OrderRepository {
     return rows.length ? toOrder(rows[0]) : null;
   }
 
-  async search(query: string): Promise<SalesOrder[]> {
-    const rows = await queryView<OrderRow>(
-      `SELECT TOP 20 ${SELECT_COLUMNS} FROM SalesOrdr01Sql WHERE Ordr LIKE @q OR custname LIKE @q ORDER BY ID DESC`,
-      { q: `%${query}%` }
-    );
-    return rows.map(toOrder);
-  }
-
   /**
    * VERIFIED FINDING (2026-07-08): SalesOrdr01.yr is always '' in live data (not a real
    * partition key), and the Ordr-vs-ID offset drifts unpredictably across 20 years of history

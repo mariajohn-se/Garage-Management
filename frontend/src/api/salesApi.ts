@@ -72,7 +72,6 @@ function qs(params: Record<string, unknown>) {
 export const orderApi = {
   list: (filters: { ordr?: string; customerName?: string; status?: string; page?: number; limit?: number }) =>
     apiRequest<Paged<SalesOrder>>(`/orders${qs(filters)}`),
-  help: (q: string) => apiRequest<SalesOrder[]>(`/orders/help${qs({ q })}`),
   get: (id: number) => apiRequest<SalesOrder>(`/orders/${id}`),
   create: (input: {
     custId: string;
