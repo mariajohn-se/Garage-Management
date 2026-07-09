@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { salesApi, Proforma } from '../api/salesApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function ProformasPage() {
   const [items, setItems] = useState<Proforma[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,14 +14,14 @@ export function ProformasPage() {
     setLoading(true);
     setError(null);
     salesApi
-      .proformas({ page, limit: LIMIT })
+      .proformas({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load proformas. Please try again.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   return (
     <div className="section-card">
@@ -70,7 +69,16 @@ export function ProformasPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

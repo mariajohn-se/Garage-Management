@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { inventoryApi, StockTransaction } from '../api/inventoryApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function StockMovementsPage() {
   const [items, setItems] = useState<StockTransaction[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [itemCode, setItemCode] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,14 +15,14 @@ export function StockMovementsPage() {
     setLoading(true);
     setError(null);
     inventoryApi
-      .listTransactions({ itemCode: itemCode || undefined, page, limit: LIMIT })
+      .listTransactions({ itemCode: itemCode || undefined, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load stock movements. Please try again.'))
       .finally(() => setLoading(false));
-  }, [itemCode, page]);
+  }, [itemCode, page, limit]);
 
   return (
     <div className="section-card">
@@ -88,7 +87,16 @@ export function StockMovementsPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

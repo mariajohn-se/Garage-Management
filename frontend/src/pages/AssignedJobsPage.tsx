@@ -4,12 +4,11 @@ import { userApi } from '../api/userApi';
 import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function AssignedJobsPage() {
   const [items, setItems] = useState<AssignedJobItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [ordr, setOrdr] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +26,7 @@ export function AssignedJobsPage() {
     setLoading(true);
     setError(null);
     jobApi
-      .listAssigned({ ordr, page, limit: LIMIT })
+      .listAssigned({ ordr, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -36,7 +35,7 @@ export function AssignedJobsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [ordr, page]);
+  useEffect(load, [ordr, page, limit]);
 
   async function handleEmpSearch(value: string) {
     setEmpQuery(value);
@@ -180,7 +179,16 @@ export function AssignedJobsPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

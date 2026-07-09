@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { salesApi, SalesInvoice } from '../api/salesApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function SalesInvoicesPage() {
   const [items, setItems] = useState<SalesInvoice[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [customerName, setCustomerName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,14 +15,14 @@ export function SalesInvoicesPage() {
     setLoading(true);
     setError(null);
     salesApi
-      .invoices({ customerName, page, limit: LIMIT })
+      .invoices({ customerName, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load sales invoices. Please try again.'))
       .finally(() => setLoading(false));
-  }, [customerName, page]);
+  }, [customerName, page, limit]);
 
   return (
     <div className="section-card">
@@ -84,7 +83,16 @@ export function SalesInvoicesPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

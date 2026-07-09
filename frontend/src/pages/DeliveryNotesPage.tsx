@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { salesApi, DeliveryNote } from '../api/salesApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function DeliveryNotesPage() {
   const [items, setItems] = useState<DeliveryNote[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [ordr, setOrdr] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,14 +16,14 @@ export function DeliveryNotesPage() {
     setLoading(true);
     setError(null);
     salesApi
-      .deliveryNotes({ ordr, page, limit: LIMIT })
+      .deliveryNotes({ ordr, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load delivery notes. Please try again.'))
       .finally(() => setLoading(false));
-  }, [ordr, page]);
+  }, [ordr, page, limit]);
 
   return (
     <div className="section-card">
@@ -88,7 +87,16 @@ export function DeliveryNotesPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

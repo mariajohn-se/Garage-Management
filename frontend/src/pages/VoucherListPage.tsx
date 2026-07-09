@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { bankingApi, VoucherListItem } from '../api/bankingApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function VoucherListPage() {
   const [items, setItems] = useState<VoucherListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [vtype, setVtype] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,14 +16,14 @@ export function VoucherListPage() {
     setLoading(true);
     setError(null);
     bankingApi
-      .listVouchers({ vtype: vtype || undefined, page, limit: LIMIT })
+      .listVouchers({ vtype: vtype || undefined, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load vouchers. Please try again.'))
       .finally(() => setLoading(false));
-  }, [vtype, page]);
+  }, [vtype, page, limit]);
 
   return (
     <div className="section-card">
@@ -107,7 +106,16 @@ export function VoucherListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

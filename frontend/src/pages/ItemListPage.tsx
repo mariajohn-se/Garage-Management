@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { inventoryApi, Item } from '../api/inventoryApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function ItemListPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [lowStock, setLowStock] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -18,14 +17,14 @@ export function ItemListPage() {
     setLoading(true);
     setError(null);
     inventoryApi
-      .listItems({ search, lowStock, page, limit: LIMIT })
+      .listItems({ search, lowStock, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load items. Please try again.'))
       .finally(() => setLoading(false));
-  }, [search, lowStock, page]);
+  }, [search, lowStock, page, limit]);
 
   return (
     <div className="section-card">
@@ -103,7 +102,16 @@ export function ItemListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

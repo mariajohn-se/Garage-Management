@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { inventoryApi, CurrentStockItem } from '../api/inventoryApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function CurrentStockPage() {
   const [items, setItems] = useState<CurrentStockItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,14 +15,14 @@ export function CurrentStockPage() {
     setLoading(true);
     setError(null);
     inventoryApi
-      .currentStock({ search: search || undefined, page, limit: LIMIT })
+      .currentStock({ search: search || undefined, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load current stock. Please try again.'))
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, [search, page, limit]);
 
   return (
     <div className="section-card">
@@ -82,7 +81,16 @@ export function CurrentStockPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

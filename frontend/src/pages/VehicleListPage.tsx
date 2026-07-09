@@ -4,12 +4,11 @@ import { vehicleApi, Vehicle } from '../api/partyApi';
 import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function VehicleListPage() {
   const [items, setItems] = useState<Vehicle[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,14 +17,14 @@ export function VehicleListPage() {
     setLoading(true);
     setError(null);
     vehicleApi
-      .list({ search, page, limit: LIMIT })
+      .list({ search, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Unable to load vehicles.'))
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, [search, page, limit]);
 
   return (
     <div className="section-card">
@@ -96,7 +95,16 @@ export function VehicleListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

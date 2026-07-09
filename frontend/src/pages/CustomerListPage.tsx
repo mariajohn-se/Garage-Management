@@ -4,12 +4,11 @@ import { customerApi, Customer } from '../api/partyApi';
 import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function CustomerListPage() {
   const [items, setItems] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({ name: '', phone: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +19,7 @@ export function CustomerListPage() {
     setLoading(true);
     setError(null);
     customerApi
-      .list({ ...filters, page, limit: LIMIT })
+      .list({ ...filters, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -29,7 +28,7 @@ export function CustomerListPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [filters, page]);
+  useEffect(load, [filters, page, limit]);
 
   async function handleExport() {
     try {
@@ -163,7 +162,16 @@ export function CustomerListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

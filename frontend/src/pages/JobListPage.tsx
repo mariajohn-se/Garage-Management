@@ -3,12 +3,11 @@ import { jobApi, jobStatusMasterApi, JobListItem, JobStatus } from '../api/jobAp
 import { ApiError } from '../api/client';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function JobListPage() {
   const [items, setItems] = useState<JobListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [customerName, setCustomerName] = useState('');
   const [statuses, setStatuses] = useState<JobStatus[]>([]);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -20,7 +19,7 @@ export function JobListPage() {
     setLoading(true);
     setError(null);
     jobApi
-      .list({ customerName, page, limit: LIMIT })
+      .list({ customerName, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -29,7 +28,7 @@ export function JobListPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [customerName, page]);
+  useEffect(load, [customerName, page, limit]);
   useEffect(() => {
     jobStatusMasterApi.list().then(setStatuses).catch(() => setStatuses([]));
   }, []);
@@ -123,7 +122,16 @@ export function JobListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

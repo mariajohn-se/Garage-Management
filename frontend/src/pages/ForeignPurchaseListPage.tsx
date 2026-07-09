@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { purchaseApi, ForeignPurchaseOrder } from '../api/purchaseApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function ForeignPurchaseListPage() {
   const [items, setItems] = useState<ForeignPurchaseOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [supplierName, setSupplierName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,14 +16,14 @@ export function ForeignPurchaseListPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listForeign({ supplierName, page, limit: LIMIT })
+      .listForeign({ supplierName, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load foreign purchase orders. Please try again.'))
       .finally(() => setLoading(false));
-  }, [supplierName, page]);
+  }, [supplierName, page, limit]);
 
   return (
     <div className="section-card">
@@ -92,7 +91,16 @@ export function ForeignPurchaseListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

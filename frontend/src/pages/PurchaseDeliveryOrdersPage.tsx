@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { purchaseApi, PurchaseDeliveryOrder } from '../api/purchaseApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function PurchaseDeliveryOrdersPage() {
   const [items, setItems] = useState<PurchaseDeliveryOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [supplierName, setSupplierName] = useState('');
   const [pdoNo, setPdoNo] = useState('');
   const [loading, setLoading] = useState(true);
@@ -18,14 +17,14 @@ export function PurchaseDeliveryOrdersPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listDeliveryOrders({ supplierName, pdoNo, page, limit: LIMIT })
+      .listDeliveryOrders({ supplierName, pdoNo, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load purchase delivery orders. Please try again.'))
       .finally(() => setLoading(false));
-  }, [supplierName, pdoNo, page]);
+  }, [supplierName, pdoNo, page, limit]);
 
   return (
     <div className="section-card">
@@ -96,7 +95,16 @@ export function PurchaseDeliveryOrdersPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

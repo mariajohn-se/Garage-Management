@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { orderApi, SalesOrder } from '../api/salesApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function OrderListPage() {
   const [items, setItems] = useState<SalesOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({ ordr: '', customerName: '', status: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +16,7 @@ export function OrderListPage() {
     setLoading(true);
     setError(null);
     orderApi
-      .list({ ...filters, page, limit: LIMIT })
+      .list({ ...filters, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -25,7 +24,7 @@ export function OrderListPage() {
       .catch(() => setError('Unable to load sales orders. Please try again.'))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, page]);
+  }, [filters, page, limit]);
 
   return (
     <div className="section-card" data-testid="salesorder-table">
@@ -119,7 +118,16 @@ export function OrderListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

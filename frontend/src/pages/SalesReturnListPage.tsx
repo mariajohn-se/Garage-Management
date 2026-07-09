@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { salesReturnApi, SalesReturnListItem } from '../api/salesReturnApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function SalesReturnListPage() {
   const [items, setItems] = useState<SalesReturnListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,14 +15,14 @@ export function SalesReturnListPage() {
     setLoading(true);
     setError(null);
     salesReturnApi
-      .list({ page, limit: LIMIT })
+      .list({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load sales returns. Please try again.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   return (
     <div className="section-card">
@@ -78,7 +77,16 @@ export function SalesReturnListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { inventoryApi, StockEntry } from '../api/inventoryApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function StockInPage() {
   const [items, setItems] = useState<StockEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,14 +15,14 @@ export function StockInPage() {
     setLoading(true);
     setError(null);
     inventoryApi
-      .listStockIn({ page, limit: LIMIT })
+      .listStockIn({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load stock in entries. Please try again.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   return (
     <div className="section-card">
@@ -76,7 +75,16 @@ export function StockInPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

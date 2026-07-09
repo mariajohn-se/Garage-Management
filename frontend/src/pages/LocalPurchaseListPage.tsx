@@ -5,14 +5,13 @@ import { Pagination } from '../components/Pagination';
 import { ApiError } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 
-const LIMIT = 25;
-
 export function LocalPurchaseListPage() {
   const { session } = useAuth();
   const canManage = session?.roles.some((r) => r === 'Supervisor' || r === 'Administrator');
   const [items, setItems] = useState<LocalPurchaseOrder[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [filters, setFilters] = useState({ supplierName: '', invoice: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +21,7 @@ export function LocalPurchaseListPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listLocal({ ...filters, page, limit: LIMIT })
+      .listLocal({ ...filters, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -32,7 +31,7 @@ export function LocalPurchaseListPage() {
   }
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(load, [filters, page]);
+  useEffect(load, [filters, page, limit]);
 
   async function handleDelete(id: number) {
     setBanner(null);
@@ -126,7 +125,16 @@ export function LocalPurchaseListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

@@ -3,14 +3,13 @@ import { attachmentApi, Attachment } from '../api/documentApi';
 import { Pagination } from '../components/Pagination';
 import { useAuth } from '../hooks/useAuth';
 
-const LIMIT = 25;
-
 export function AttachmentsPage() {
   const { session } = useAuth();
   const canDelete = session?.roles.some((r) => r === 'Supervisor' || r === 'Administrator');
   const [items, setItems] = useState<Attachment[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -24,7 +23,7 @@ export function AttachmentsPage() {
     setLoading(true);
     setError(null);
     attachmentApi
-      .list({ page, limit: LIMIT })
+      .list({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -33,7 +32,7 @@ export function AttachmentsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [page]);
+  useEffect(load, [page, limit]);
 
   async function handleUpload() {
     const file = fileInputRef.current?.files?.[0];
@@ -170,7 +169,16 @@ export function AttachmentsPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

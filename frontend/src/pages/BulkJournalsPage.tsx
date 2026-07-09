@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { ledgerApi, BulkJournalEntry } from '../api/ledgerApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function BulkJournalsPage() {
   const [items, setItems] = useState<BulkJournalEntry[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,14 +14,14 @@ export function BulkJournalsPage() {
     setLoading(true);
     setError(null);
     ledgerApi
-      .listBulkJournals({ page, limit: LIMIT })
+      .listBulkJournals({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load bulk journal entries. Please try again.'))
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   return (
     <div className="section-card">
@@ -71,7 +70,16 @@ export function BulkJournalsPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

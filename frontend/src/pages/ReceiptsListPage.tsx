@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { receiptsPaymentsApi, PartyBill } from '../api/receiptsPaymentsApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function ReceiptsListPage() {
   const [items, setItems] = useState<PartyBill[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'' | 'paid' | 'outstanding'>('');
   const [loading, setLoading] = useState(true);
@@ -18,14 +17,14 @@ export function ReceiptsListPage() {
     setLoading(true);
     setError(null);
     receiptsPaymentsApi
-      .listReceipts({ search: search || undefined, status: status || undefined, page, limit: LIMIT })
+      .listReceipts({ search: search || undefined, status: status || undefined, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load receipts. Please try again.'))
       .finally(() => setLoading(false));
-  }, [search, status, page]);
+  }, [search, status, page, limit]);
 
   return (
     <div className="section-card">
@@ -109,7 +108,16 @@ export function ReceiptsListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

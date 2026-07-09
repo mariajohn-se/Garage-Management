@@ -4,14 +4,13 @@ import { Pagination } from '../components/Pagination';
 import { ApiError } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
 
-const LIMIT = 25;
-
 export function ProdRequestsPage() {
   const { session } = useAuth();
   const canManage = session?.roles.some((r) => r === 'Supervisor' || r === 'Administrator');
   const [items, setItems] = useState<ProdRequest[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -23,7 +22,7 @@ export function ProdRequestsPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listProdRequests({ page, limit: LIMIT })
+      .listProdRequests({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -32,7 +31,7 @@ export function ProdRequestsPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [page]);
+  useEffect(load, [page, limit]);
 
   async function handleAdd() {
     if (!supplierId.trim()) return;
@@ -121,7 +120,16 @@ export function ProdRequestsPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

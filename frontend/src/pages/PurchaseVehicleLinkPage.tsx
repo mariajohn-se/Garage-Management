@@ -3,12 +3,11 @@ import { purchaseApi, PurchaseVehicleLink } from '../api/purchaseApi';
 import { Pagination } from '../components/Pagination';
 import { ApiError } from '../api/client';
 
-const LIMIT = 25;
-
 export function PurchaseVehicleLinkPage() {
   const [items, setItems] = useState<PurchaseVehicleLink[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -20,7 +19,7 @@ export function PurchaseVehicleLinkPage() {
     setLoading(true);
     setError(null);
     purchaseApi
-      .listVehicleLinks({ page, limit: LIMIT })
+      .listVehicleLinks({ page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
@@ -29,7 +28,7 @@ export function PurchaseVehicleLinkPage() {
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [page]);
+  useEffect(load, [page, limit]);
 
   async function handleAdd() {
     if (!pInvNo.trim() || !vehNo.trim()) return;
@@ -114,7 +113,16 @@ export function PurchaseVehicleLinkPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

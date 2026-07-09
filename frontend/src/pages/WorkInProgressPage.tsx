@@ -2,12 +2,11 @@ import { useEffect, useState } from 'react';
 import { jobApi, WorkInProgressItem } from '../api/jobApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function WorkInProgressPage() {
   const [items, setItems] = useState<WorkInProgressItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [ordr, setOrdr] = useState('');
   const [empName, setEmpName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -17,14 +16,14 @@ export function WorkInProgressPage() {
     setLoading(true);
     setError(null);
     jobApi
-      .listWorkInProgress({ ordr, empName, page, limit: LIMIT })
+      .listWorkInProgress({ ordr, empName, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load work in progress. Please try again.'))
       .finally(() => setLoading(false));
-  }, [ordr, empName, page]);
+  }, [ordr, empName, page, limit]);
 
   return (
     <div className="section-card" data-testid="workstatus-table">
@@ -91,7 +90,16 @@ export function WorkInProgressPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>

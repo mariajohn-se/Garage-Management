@@ -3,12 +3,11 @@ import { Link } from 'react-router-dom';
 import { ledgerApi, AccountHead } from '../api/ledgerApi';
 import { Pagination } from '../components/Pagination';
 
-const LIMIT = 25;
-
 export function AccountHeadListPage() {
   const [items, setItems] = useState<AccountHead[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,14 +16,14 @@ export function AccountHeadListPage() {
     setLoading(true);
     setError(null);
     ledgerApi
-      .listAccountHeads({ search: search || undefined, page, limit: LIMIT })
+      .listAccountHeads({ search: search || undefined, page, limit })
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch(() => setError('Unable to load account heads. Please try again.'))
       .finally(() => setLoading(false));
-  }, [search, page]);
+  }, [search, page, limit]);
 
   return (
     <div className="section-card">
@@ -91,7 +90,16 @@ export function AccountHeadListPage() {
                 ))}
             </tbody>
           </table>
-          <Pagination page={page} limit={LIMIT} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            limit={limit}
+            total={total}
+            onPageChange={setPage}
+            onLimitChange={(l) => {
+              setLimit(l);
+              setPage(1);
+            }}
+          />
         </>
       )}
     </div>
