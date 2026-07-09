@@ -1,16 +1,29 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { estimationApi, EstimationListItem } from '../api/jobApi';
+import { estimationApi, EstimationListItem, AdvisorOption } from '../api/jobApi';
 import { Pagination } from '../components/Pagination';
+import { formatDate, formatMoney } from '../utils/format';
 
 export function EstimationListPage() {
   const [items, setItems] = useState<EstimationListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(50);
-  const [filters, setFilters] = useState({ customerName: '', vehNo: '', approved: '' });
+  const [filters, setFilters] = useState({
+    customerName: '',
+    vehNo: '',
+    approved: '',
+    staffId: '',
+    fromDate: '',
+    toDate: ''
+  });
+  const [advisors, setAdvisors] = useState<AdvisorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    estimationApi.listAdvisors().then(setAdvisors).catch(() => setAdvisors([]));
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -26,6 +39,11 @@ export function EstimationListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, page, limit]);
 
+  function updateFilter(patch: Partial<typeof filters>) {
+    setPage(1);
+    setFilters((f) => ({ ...f, ...patch }));
+  }
+
   return (
     <div className="section-card" data-testid="estimation-report-table">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -39,30 +57,30 @@ export function EstimationListPage() {
         <input
           placeholder="Customer..."
           value={filters.customerName}
-          onChange={(e) => {
-            setPage(1);
-            setFilters((f) => ({ ...f, customerName: e.target.value }));
-          }}
+          onChange={(e) => updateFilter({ customerName: e.target.value })}
         />
-        <input
-          placeholder="Vehicle No..."
-          value={filters.vehNo}
-          onChange={(e) => {
-            setPage(1);
-            setFilters((f) => ({ ...f, vehNo: e.target.value }));
-          }}
-        />
-        <select
-          value={filters.approved}
-          onChange={(e) => {
-            setPage(1);
-            setFilters((f) => ({ ...f, approved: e.target.value }));
-          }}
-        >
-          <option value="">All</option>
+        <input placeholder="Vehicle No..." value={filters.vehNo} onChange={(e) => updateFilter({ vehNo: e.target.value })} />
+        <select value={filters.approved} onChange={(e) => updateFilter({ approved: e.target.value })}>
+          <option value="">All Statuses</option>
           <option value="yes">Approved</option>
           <option value="no">Not Approved</option>
         </select>
+        <select value={filters.staffId} onChange={(e) => updateFilter({ staffId: e.target.value })}>
+          <option value="">All Advisors</option>
+          {advisors.map((a) => (
+            <option key={a.ocode} value={a.ocode}>
+              {a.name}
+            </option>
+          ))}
+        </select>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          From
+          <input type="date" value={filters.fromDate} onChange={(e) => updateFilter({ fromDate: e.target.value })} />
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          To
+          <input type="date" value={filters.toDate} onChange={(e) => updateFilter({ toDate: e.target.value })} />
+        </label>
       </div>
 
       {error && <div className="error-state">{error}</div>}
@@ -72,12 +90,13 @@ export function EstimationListPage() {
           <table className="data-table">
             <thead>
               <tr>
+                <th>Estm. No</th>
                 <th>Job Card #</th>
                 <th>Customer</th>
                 <th>Vehicle</th>
                 <th>Advisor</th>
-                <th>Bill Date</th>
-                <th>Total</th>
+                <th>Date</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -86,12 +105,12 @@ export function EstimationListPage() {
               {loading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="skeleton-row">
-                    <td colSpan={8} />
+                    <td colSpan={9} />
                   </tr>
                 ))}
               {!loading && items.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="empty-state">
+                  <td colSpan={9} className="empty-state">
                     No estimation records found for these parameters.
                   </td>
                 </tr>
@@ -99,12 +118,15 @@ export function EstimationListPage() {
               {!loading &&
                 items.map((e) => (
                   <tr key={e.id}>
-                    <td>{e.jobCardNo ?? '—'}</td>
+                    <td>{e.estimationNo ?? '—'}</td>
+                    <td>{e.jobCardNo && e.jobCardNo !== '0' ? e.jobCardNo : '—'}</td>
                     <td>{e.customerName ?? '—'}</td>
                     <td>{e.vehNo ?? '—'}</td>
                     <td>{e.staffName ?? '—'}</td>
-                    <td>{e.billDate ? new Date(e.billDate).toLocaleDateString() : '—'}</td>
-                    <td>{e.net ?? e.total ?? '—'}</td>
+                    <td>{formatDate(e.billDate)}</td>
+                    <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatMoney(e.net ?? e.total)}
+                    </td>
                     <td>{e.approved ? 'Approved' : e.rejected ? 'Rejected' : 'Pending'}</td>
                     <td>
                       <Link

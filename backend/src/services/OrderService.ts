@@ -39,11 +39,18 @@ export class OrderService {
 
   async create(
     req: Request,
-    input: { custId: string; vehId: number | null; orderDate: string; custNote: string | null; items: OrderLineItem[] }
+    input: {
+      custId: string;
+      vehId: number | null;
+      orderDate: string;
+      custNote: string | null;
+      estimationRef?: string | null;
+      items: OrderLineItem[];
+    }
   ): Promise<{ ordr: string; total: number }> {
     this.validateOrderInput(input);
     const total = sumLineTotals(input.items.map((i) => ({ qty: i.qty, rate: i.rate, discountPercent: i.discount })));
-    const ordr = await orderRepository.create(input);
+    const ordr = await orderRepository.create({ ...input, estimationRef: input.estimationRef ?? null });
     await logUserEvent(req, {
       userId: req.user!.sub,
       userName: req.user!.username,

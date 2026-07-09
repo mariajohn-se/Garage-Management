@@ -38,6 +38,7 @@ import { AttachmentsPage } from './pages/AttachmentsPage';
 import { RemarksReportPage } from './pages/RemarksReportPage';
 import { EstimationListPage } from './pages/EstimationListPage';
 import { EstimationDetailPage } from './pages/EstimationDetailPage';
+import { EstimationPrintPage } from './pages/EstimationPrintPage';
 import { EstimationFormPage } from './pages/EstimationFormPage';
 import { JobListPage } from './pages/JobListPage';
 import { WorkInProgressPage } from './pages/WorkInProgressPage';
@@ -244,6 +245,7 @@ export function App() {
             <Route path="/estimations/new" element={<EstimationFormPage />} />
             <Route path="/estimations/:estimationId" element={<EstimationDetailPage />} />
             <Route path="/estimations/:estimationId/edit" element={<EstimationFormPage />} />
+            <Route path="/estimations/:estimationId/print" element={<EstimationPrintPage />} />
             <Route path="/bookings" element={<BookingListPage />} />
             <Route path="/bookings/new" element={<BookingFormPage />} />
             <Route path="/jobs" element={<JobListPage />} />

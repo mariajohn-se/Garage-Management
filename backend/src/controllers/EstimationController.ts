@@ -19,14 +19,25 @@ export class EstimationController {
 
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const { customerName, vehNo, approved } = req.query;
+      const { customerName, vehNo, approved, staffId, fromDate, toDate } = req.query;
       const result = await estimationService.list({
         customerName: customerName as string | undefined,
         vehNo: vehNo as string | undefined,
         approved: approved as 'yes' | 'no' | undefined,
+        staffId: staffId as string | undefined,
+        fromDate: fromDate as string | undefined,
+        toDate: toDate as string | undefined,
         ...parsePaging(req)
       });
       res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listAdvisors(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await estimationService.listAdvisors());
     } catch (err) {
       next(err);
     }

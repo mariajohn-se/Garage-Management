@@ -4,13 +4,26 @@ import { logUserEvent } from '../auth/userlog';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors';
 
 export class EstimationService {
-  async list(filters: { customerName?: string; vehNo?: string; approved?: 'yes' | 'no'; page: number; limit: number }) {
+  async list(filters: {
+    customerName?: string;
+    vehNo?: string;
+    approved?: 'yes' | 'no';
+    staffId?: string;
+    fromDate?: string;
+    toDate?: string;
+    page: number;
+    limit: number;
+  }) {
     return estimationRepository.list(filters);
   }
 
   async searchStaff(query: string) {
     if (!query?.trim()) return [];
     return estimationRepository.searchStaff(query.trim());
+  }
+
+  async listAdvisors() {
+    return estimationRepository.listAdvisors();
   }
 
   async get(id: number) {

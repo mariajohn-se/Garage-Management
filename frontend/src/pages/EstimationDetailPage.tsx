@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { estimationApi } from '../api/jobApi';
 import { ApiError } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
+import { formatDate, formatMoney } from '../utils/format';
 
 export function EstimationDetailPage() {
   const { estimationId } = useParams();
@@ -53,41 +54,75 @@ export function EstimationDetailPage() {
   if (!estimation) return null;
 
   const isLinked = !!estimation.jobCardNo && estimation.jobCardNo !== '0';
+  const isPending = !estimation.approved && !estimation.rejected;
+  // Fix4/Fix1: Total = parts/materials only, Labour stored separately, Nett = Total + Labour + Add - Less.
+  const totalParts = estimation.total ?? 0;
+  const totalLabour = estimation.labourTotal ?? 0;
+  const addition = estimation.addition ?? 0;
+  const less = estimation.less ?? 0;
+  const nett = estimation.net ?? totalParts + totalLabour + addition - less;
+  // Convert to Job Order: per the legacy schema, Estimation01Sql.Approved is only ever computed
+  // when a job card is already linked (Partsavailable01 is keyed by JobCardNo) - the backend's
+  // own setApproval() blocks approving an unlinked estimation. In practice this means an
+  // Approved estimation almost always already has a real jobCardNo, so this condition is rarely
+  // (if ever) true against live data. Implemented as literally specified; flagged for the
+  // business owner to confirm the intended real-world sequence.
+  const canConvertToJobOrder = estimation.approved && !isLinked;
 
   return (
-    <div className="section-card" style={{ maxWidth: 700 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Estimation {estimation.jobCardNo}</h2>
-        {!estimation.approved && (
-          <Link className="btn-outline" to={`/estimations/${estimation.id}/edit`}>
-            Edit
+    <div className="section-card" style={{ maxWidth: 900 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ marginBottom: 'var(--space-1)' }}>Estimation #{estimation.estimationNo ?? estimation.id}</h2>
+          <p style={{ color: 'var(--color-text-secondary)', margin: 0 }}>
+            Job Card: {isLinked ? estimation.jobCardNo : 'Not linked'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <Link className="btn-outline" to={`/estimations/${estimation.id}/print`} target="_blank">
+            Print / PDF
           </Link>
-        )}
+          {estimation.approved ? (
+            <button className="btn-outline" disabled title="Approved estimations can no longer be edited.">
+              Edit
+            </button>
+          ) : (
+            <Link className="btn-outline" to={`/estimations/${estimation.id}/edit`}>
+              Edit
+            </Link>
+          )}
+          {canConvertToJobOrder && (
+            <Link
+              className="btn-primary"
+              style={{ width: 'auto' }}
+              to={`/orders/new?estimationId=${estimation.id}&estimationNo=${encodeURIComponent(
+                estimation.estimationNo ?? ''
+              )}&custId=${encodeURIComponent(estimation.customerId ?? '')}&custName=${encodeURIComponent(
+                estimation.customerName ?? ''
+              )}&vehId=${estimation.vehicleId ?? ''}`}
+            >
+              Convert to Job Order
+            </Link>
+          )}
+        </div>
       </div>
+
       {banner && <div className="alert alert-success">{banner}</div>}
       {error && <div className="alert alert-error">{error}</div>}
 
-      <table className="data-table">
+      <table className="data-table" style={{ marginTop: 'var(--space-4)' }}>
         <tbody>
           <tr>
             <td>Customer</td>
             <td data-testid="estimation-customer">{estimation.customerName ?? '—'}</td>
           </tr>
           <tr>
-            <td>Vehicle</td>
-            <td data-testid="estimation-vehicle">{estimation.vehNo ?? '—'}</td>
-          </tr>
-          <tr>
             <td>Advisor</td>
             <td>{estimation.staffName ?? '—'}</td>
           </tr>
           <tr>
-            <td>Total</td>
-            <td>{estimation.net ?? estimation.total ?? '—'}</td>
-          </tr>
-          <tr>
-            <td>Labour</td>
-            <td>{estimation.labourTotal ?? '—'}</td>
+            <td>Estimation Date</td>
+            <td>{formatDate(estimation.billDate)}</td>
           </tr>
           <tr>
             <td data-testid="estimation-description">Remarks</td>
@@ -95,9 +130,7 @@ export function EstimationDetailPage() {
           </tr>
           <tr>
             <td>Status</td>
-            <td>
-              {estimation.approved ? 'Approved' : estimation.rejected ? 'Rejected' : 'Pending Approval'}
-            </td>
+            <td>{estimation.approved ? 'Approved' : estimation.rejected ? 'Rejected' : 'Pending Approval'}</td>
           </tr>
           {estimation.rejected && estimation.rejectionComment && (
             <tr>
@@ -108,45 +141,104 @@ export function EstimationDetailPage() {
         </tbody>
       </table>
 
+      <h3 style={{ marginTop: 'var(--space-6)', marginBottom: 'var(--space-3)' }}>Vehicle</h3>
+      <table className="data-table" data-testid="estimation-vehicle">
+        <tbody>
+          <tr>
+            <td>Registration No.</td>
+            <td>{estimation.vehNo ?? '—'}</td>
+            <td>Make</td>
+            <td>{estimation.make ?? '—'}</td>
+          </tr>
+          <tr>
+            <td>Chassis / Engine No.</td>
+            <td>{estimation.engineNo ?? '—'}</td>
+            <td>Colour</td>
+            <td>{estimation.colour ?? '—'}</td>
+          </tr>
+          <tr>
+            <td>Year</td>
+            <td>{estimation.manYear ?? '—'}</td>
+            <td style={{ color: 'var(--color-text-secondary)' }}>Vehicle ID</td>
+            <td style={{ color: 'var(--color-text-secondary)' }}>{estimation.vehicleId ?? '—'}</td>
+          </tr>
+        </tbody>
+      </table>
+
       <h3 style={{ marginTop: 'var(--space-6)', marginBottom: 'var(--space-3)' }}>Line Items</h3>
       <table className="data-table" data-testid="estimation-item-table">
         <thead>
           <tr>
             <th>Description</th>
-            <th>Qty</th>
-            <th>Unit Price</th>
-            <th>Labour</th>
-            <th>Amount</th>
+            <th style={{ textAlign: 'right' }}>Qty</th>
+            <th style={{ textAlign: 'right' }}>Unit Price</th>
+            <th style={{ textAlign: 'right' }}>Amount</th>
+            <th style={{ textAlign: 'right' }}>Labour</th>
+            <th style={{ textAlign: 'right' }}>Line Total</th>
           </tr>
         </thead>
         <tbody>
           {estimation.lines.length === 0 && (
             <tr>
-              <td colSpan={5} className="empty-state">
+              <td colSpan={6} className="empty-state">
                 No line item detail available.
               </td>
             </tr>
           )}
-          {estimation.lines.map((line, i) => (
-            <tr key={i}>
-              <td>{line.description ?? '—'}</td>
-              <td>{line.qty ?? '—'}</td>
-              <td>{line.unitPrice ?? '—'}</td>
-              <td>{line.labourAmount ?? '—'}</td>
-              <td>{line.amount ?? '—'}</td>
-            </tr>
-          ))}
+          {estimation.lines.map((line, i) => {
+            const amount = line.amount ?? (line.qty ?? 0) * (line.unitPrice ?? 0);
+            const labour = line.labourAmount ?? 0;
+            return (
+              <tr key={i}>
+                <td>{line.description ?? '—'}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{line.qty ?? '—'}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {formatMoney(line.unitPrice)}
+                </td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(amount)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(labour)}</td>
+                <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>
+                  {formatMoney(amount + labour)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
 
-      {canApprove && !estimation.approved && !isLinked && (
+      <table className="data-table" style={{ marginTop: 'var(--space-4)', maxWidth: 360, marginLeft: 'auto' }}>
+        <tbody>
+          <tr>
+            <td>Total (Parts)</td>
+            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalParts)}</td>
+          </tr>
+          <tr>
+            <td>Total (Labour)</td>
+            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(totalLabour)}</td>
+          </tr>
+          <tr>
+            <td>Add</td>
+            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(addition)}</td>
+          </tr>
+          <tr>
+            <td>Less</td>
+            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(less)}</td>
+          </tr>
+          <tr style={{ fontWeight: 700 }}>
+            <td>Nett</td>
+            <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{formatMoney(nett)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {canApprove && isPending && !isLinked && (
         <div className="alert alert-error" style={{ marginTop: 'var(--space-6)' }}>
           This estimation is not linked to a job card yet - link it to a job card before it can be approved or
           rejected.
         </div>
       )}
 
-      {canApprove && !estimation.approved && isLinked && (
+      {canApprove && isPending && isLinked && (
         <div style={{ marginTop: 'var(--space-6)' }}>
           <div className="form-group">
             <label htmlFor="est-approval-comment">Comment (required to reject)</label>

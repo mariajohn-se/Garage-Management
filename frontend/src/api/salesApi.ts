@@ -78,6 +78,7 @@ export const orderApi = {
     vehId: number | null;
     orderDate: string;
     custNote: string | null;
+    estimationRef?: string | null;
     items: LineItem[];
   }) => apiRequest<{ ordr: string; total: number }>('/orders', { method: 'POST', body: input }),
   update: (id: number, changes: { custId?: string; vehId?: number | null; custNote?: string; items?: LineItem[] }) =>

@@ -8,16 +8,28 @@ export interface EstimationListItem {
   customerName: string | null;
   vehicleId: number | null;
   vehNo: string | null;
+  engineNo: string | null;
+  make: string | null;
+  colour: string | null;
+  manYear: string | null;
   staffId: string | null;
   staffName: string | null;
   billDate: string | null;
   total: number | null;
   labourTotal: number | null;
+  addition: number | null;
+  less: number | null;
   net: number | null;
   approved: boolean;
   rejected: boolean;
   rejectionComment: string | null;
   remarks: string | null;
+  partsEstRef: string | null;
+}
+
+export interface AdvisorOption {
+  ocode: string;
+  name: string;
 }
 
 export interface EstimationLine {
@@ -112,8 +124,16 @@ export interface EstimationInput {
 }
 
 export const estimationApi = {
-  list: (filters: { customerName?: string; vehNo?: string; approved?: string; page?: number; limit?: number }) =>
-    apiRequest<Paged<EstimationListItem>>(`/estimations${qs(filters)}`),
+  list: (filters: {
+    customerName?: string;
+    vehNo?: string;
+    approved?: string;
+    staffId?: string;
+    fromDate?: string;
+    toDate?: string;
+    page?: number;
+    limit?: number;
+  }) => apiRequest<Paged<EstimationListItem>>(`/estimations${qs(filters)}`),
   get: (id: number) => apiRequest<EstimationListItem & { lines: EstimationLine[] }>(`/estimations/${id}`),
   create: (input: EstimationInput) => apiRequest<{ id: number }>('/estimations', { method: 'POST', body: input }),
   update: (
@@ -123,7 +143,8 @@ export const estimationApi = {
   approve: (id: number, approved: boolean, remarks?: string) =>
     apiRequest<{ message: string }>(`/estimations/${id}/approve`, { method: 'PUT', body: { approved, remarks } }),
   staffHelp: (query: string) =>
-    apiRequest<Array<{ ocode: string; name: string }>>(`/estimations/staff/help?q=${encodeURIComponent(query)}`)
+    apiRequest<Array<{ ocode: string; name: string }>>(`/estimations/staff/help?q=${encodeURIComponent(query)}`),
+  listAdvisors: () => apiRequest<AdvisorOption[]>('/estimations/advisors')
 };
 
 export const jobApi = {

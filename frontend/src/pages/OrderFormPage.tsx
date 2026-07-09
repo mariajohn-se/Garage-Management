@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { orderApi } from '../api/salesApi';
 import { customerApi, Customer } from '../api/partyApi';
 import { ApiError } from '../api/client';
@@ -9,13 +9,38 @@ export function OrderFormPage() {
   const { orderId } = useParams();
   const isEdit = Boolean(orderId);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Prefill support for Estimation Detail's "Convert to Job Order" action - see
+  // EstimationDetailPage.tsx. estimationRef is stored on the real SalesOrdr01.Estimation column.
+  const estimationRef = searchParams.get('estimationNo') || null;
+  const prefillCustId = searchParams.get('custId') || '';
+  const prefillCustName = searchParams.get('custName') || '';
+  const prefillVehId = searchParams.get('vehId') || '';
 
   const [custQuery, setCustQuery] = useState('');
   const [custResults, setCustResults] = useState<Customer[]>([]);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [vehId, setVehId] = useState('');
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
+    !isEdit && prefillCustId
+      ? {
+          custId: prefillCustId,
+          name: prefillCustName,
+          address: '',
+          emirate: null,
+          contactPerson: null,
+          phone1: null,
+          phone2: null,
+          email: null,
+          area: null,
+          isActive: true,
+          remarks: null
+        }
+      : null
+  );
+  const [vehId, setVehId] = useState(!isEdit ? prefillVehId : '');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
-  const [custNote, setCustNote] = useState('');
+  const [custNote, setCustNote] = useState(
+    !isEdit && estimationRef ? `Created from Estimation #${estimationRef}` : ''
+  );
   const [items, setItems] = useState<LineItem[]>([]);
   const [locked, setLocked] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -85,6 +110,7 @@ export function OrderFormPage() {
           vehId: vehId ? Number(vehId) : null,
           orderDate,
           custNote: custNote || null,
+          estimationRef,
           items
         });
       }
@@ -101,6 +127,9 @@ export function OrderFormPage() {
   return (
     <div className="section-card" style={{ maxWidth: 800 }}>
       <h2>{isEdit ? 'Edit Sales Order' : 'New Sales Order'}</h2>
+      {!isEdit && estimationRef && (
+        <div className="alert alert-success">Converting Estimation #{estimationRef} to a job order.</div>
+      )}
       {apiError && <div className="alert alert-error">{apiError}</div>}
       {locked && <div className="alert alert-error">This order has been delivered - items are locked (BR-57).</div>}
 

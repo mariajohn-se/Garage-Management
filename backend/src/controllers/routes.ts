@@ -122,6 +122,7 @@ apiRouter.delete('/remarks/:id', ...supervisorUp, remarksController.remove.bind(
 
 // --- Phase 5: Jobs, Work Orders & Estimation ---
 apiRouter.get('/estimations/staff/help', requireAuth, estimationController.staffHelp.bind(estimationController));
+apiRouter.get('/estimations/advisors', requireAuth, estimationController.listAdvisors.bind(estimationController));
 apiRouter.get('/estimations', requireAuth, estimationController.list.bind(estimationController));
 apiRouter.post('/estimations', requireAuth, estimationController.create.bind(estimationController));
 apiRouter.get('/estimations/:id', requireAuth, estimationController.get.bind(estimationController));

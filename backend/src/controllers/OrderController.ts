@@ -35,12 +35,13 @@ export class OrderController {
 
   async create(req: Request, res: Response, next: NextFunction) {
     try {
-      const { custId, vehId, orderDate, custNote, items } = req.body ?? {};
+      const { custId, vehId, orderDate, custNote, estimationRef, items } = req.body ?? {};
       const result = await orderService.create(req, {
         custId,
         vehId: vehId ?? null,
         orderDate,
         custNote: custNote ?? null,
+        estimationRef: estimationRef || null,
         items: items ?? []
       });
       res.status(201).json(result);

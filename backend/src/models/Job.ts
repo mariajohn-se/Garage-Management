@@ -12,16 +12,29 @@ export interface EstimationListItem {
   customerName: string | null;
   vehicleId: number | null;
   vehNo: string | null;
+  engineNo: string | null;
+  make: string | null;
+  colour: string | null;
+  manYear: string | null;
   staffId: string | null;
   staffName: string | null;
   billDate: string | null;
   total: number | null;
   labourTotal: number | null;
+  addition: number | null;
+  less: number | null;
   net: number | null;
   approved: boolean;
   rejected: boolean;
   rejectionComment: string | null;
   remarks: string | null;
+  /**
+   * VERIFIED (2026-07-09): Estimation01Sql already computes this as
+   * ISNULL((SELECT RefNo FROM Partsavailable01Sql WHERE Ordr = JobCardNo), 0) - the legacy
+   * system's own name for this column, per the view definition. Non-zero/non-null means a
+   * parts-approval record already references this estimation's job card.
+   */
+  partsEstRef: string | null;
 }
 
 export interface EstimationLine {
@@ -30,6 +43,11 @@ export interface EstimationLine {
   unitPrice: number | null;
   labourAmount: number | null;
   amount: number | null;
+}
+
+export interface AdvisorOption {
+  ocode: string;
+  name: string;
 }
 
 export interface JobListItem {

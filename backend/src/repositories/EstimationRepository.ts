@@ -1,6 +1,6 @@
 import mssql from 'mssql';
 import { queryView, queryViewPaginated, executeWrite, withNextNumericId } from '../db/callProcedure';
-import { EstimationListItem, EstimationLine } from '../models/Job';
+import { EstimationListItem, EstimationLine, AdvisorOption } from '../models/Job';
 
 export interface EstimationLineInput {
   description: string;
@@ -42,14 +42,21 @@ interface EstimationRow {
   custname: string | null;
   VehicleId: number | null;
   VehNo: string | null;
+  EngineNo: string | null;
+  Make: string | null;
+  Colour: string | null;
+  ManYear: string | null;
   StaffId: string | null;
   StaffName: string | null;
   BillDt: string | null;
   Total: number | null;
   totlabour: number | null;
+  Addition: number | null;
+  Less: number | null;
   nett: number | null;
   Approved: number | null;
   Remarks: string | null;
+  PartsEstRef: string | null;
   DecisionDt: string | null;
   DecisionComment: string | null;
 }
@@ -70,20 +77,28 @@ function toEstimation(row: EstimationRow): EstimationListItem {
     customerName: row.custname,
     vehicleId: row.VehicleId,
     vehNo: row.VehNo,
+    engineNo: row.EngineNo,
+    make: row.Make,
+    colour: row.Colour,
+    manYear: row.ManYear,
     staffId: row.StaffId,
     staffName: row.StaffName,
     billDate: row.BillDt,
     total: row.Total,
     labourTotal: row.totlabour,
+    addition: row.Addition,
+    less: row.Less,
     net: row.nett,
     approved: !!row.Approved,
     rejected: decided && !row.Approved,
     rejectionComment: decided && !row.Approved ? row.DecisionComment : null,
-    remarks: row.Remarks
+    remarks: row.Remarks,
+    partsEstRef: row.PartsEstRef && row.PartsEstRef !== '0' ? row.PartsEstRef : null
   };
 }
 
-const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, CustomerId, custname, VehicleId, VehNo, StaffId, StaffName, BillDt, Total, totlabour, nett, Approved, Remarks,
+const SELECT_COLUMNS = `ID, EstimationNo, JObCardNo, CustomerId, custname, VehicleId, VehNo, EngineNo, Make, Colour, ManYear,
+  StaffId, StaffName, BillDt, Total, totlabour, Addition, Less, nett, Approved, Remarks, PartsEstRef,
   (SELECT TOP 1 ApprovedDt FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionDt,
   (SELECT TOP 1 ServiceComment FROM Partsavailable01 WHERE Ordr = JObCardNo ORDER BY ID DESC) AS DecisionComment`;
 
@@ -97,10 +112,22 @@ export class EstimationRepository {
     return rows.map((r) => ({ ocode: r.Ocode, name: r.Description }));
   }
 
+  /** Distinct advisors who actually have estimations - backs the Advisor filter dropdown (a
+   *  full StaffSql list would include codes never used on any estimation). */
+  async listAdvisors(): Promise<AdvisorOption[]> {
+    const rows = await queryView<{ StaffId: string; StaffName: string | null }>(
+      `SELECT DISTINCT StaffId, StaffName FROM Estimation01Sql WHERE StaffId IS NOT NULL ORDER BY StaffName`
+    );
+    return rows.map((r) => ({ ocode: r.StaffId, name: r.StaffName ?? r.StaffId }));
+  }
+
   async list(filters: {
     customerName?: string;
     vehNo?: string;
     approved?: 'yes' | 'no';
+    staffId?: string;
+    fromDate?: string;
+    toDate?: string;
     page: number;
     limit: number;
   }): Promise<{ items: EstimationListItem[]; total: number }> {
@@ -116,6 +143,18 @@ export class EstimationRepository {
     }
     if (filters.approved) {
       conditions.push(filters.approved === 'yes' ? 'Approved <> 0' : '(Approved = 0 OR Approved IS NULL)');
+    }
+    if (filters.staffId) {
+      conditions.push('StaffId = @staffId');
+      params.staffId = filters.staffId;
+    }
+    if (filters.fromDate) {
+      conditions.push('BillDt >= @fromDate');
+      params.fromDate = filters.fromDate;
+    }
+    if (filters.toDate) {
+      conditions.push('BillDt < DATEADD(day, 1, @toDate)');
+      params.toDate = filters.toDate;
     }
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 

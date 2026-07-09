@@ -113,11 +113,19 @@ export class OrderRepository {
    * The order form collects no tax/discount input, so Amount is plain Qty*Rate (minus the
    * optional per-line discount field, unused by the current UI but supported by the API type).
    */
+  /**
+   * VERIFIED (2026-07-09): SalesOrdr01.Estimation (nvarchar) is a real, existing column - the
+   * legacy system's own field for linking a job order back to the estimation it was created
+   * from. Populated with the estimation's human-facing EstimationNo when provided; left null
+   * otherwise. Not populated by anything else currently, so this is a genuine gap being filled,
+   * not a guess at an undocumented convention.
+   */
   async create(input: {
     custId: string;
     vehId: number | null;
     orderDate: string;
     custNote: string | null;
+    estimationRef: string | null;
     items: OrderLineItem[];
   }): Promise<string> {
     return withNextNumericId('SalesOrdr01', 'ID', async (nextId, req, transaction) => {
@@ -135,10 +143,11 @@ export class OrderRepository {
         .input('CustId', input.custId)
         .input('VehId', input.vehId)
         .input('CustNote', input.custNote)
+        .input('Estimation', input.estimationRef)
         .input('Total', total)
         .input('Nett', total).query(`
-          INSERT INTO SalesOrdr01 (ID, Ccode, yr, Ordr, Ordt, CustId, VehId, CustNote, Total, Nett)
-          VALUES (@ID, '01', '', @Ordr, @Ordt, @CustId, @VehId, @CustNote, @Total, @Nett)
+          INSERT INTO SalesOrdr01 (ID, Ccode, yr, Ordr, Ordt, CustId, VehId, CustNote, Estimation, Total, Nett)
+          VALUES (@ID, '01', '', @Ordr, @Ordt, @CustId, @VehId, @CustNote, @Estimation, @Total, @Nett)
         `);
 
       let srl = 1;
