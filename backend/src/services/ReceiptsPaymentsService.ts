@@ -19,6 +19,15 @@ export class ReceiptsPaymentsService {
     if (!fromDate || !toDate) throw new ValidationError('From date and to date are required.');
     return receiptsPaymentsRepository.discountHistory(fromDate, toDate, maxDiscount);
   }
+
+  async customerOutstandingBySalesperson(date: string) {
+    if (!date) throw new ValidationError('Date is required.');
+    return receiptsPaymentsRepository.customerOutstandingBySalesperson(date);
+  }
+
+  async supplierOutstandingSummary() {
+    return receiptsPaymentsRepository.supplierOutstandingSummary();
+  }
 }
 
 export const receiptsPaymentsService = new ReceiptsPaymentsService();

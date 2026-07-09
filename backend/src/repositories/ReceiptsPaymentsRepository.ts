@@ -1,5 +1,11 @@
 import { queryView, queryViewPaginated, callProcedure } from '../db/callProcedure';
-import { PartyBill, BillAllocation, DiscountAuditRow } from '../models/ReceiptsPayments';
+import {
+  PartyBill,
+  BillAllocation,
+  DiscountAuditRow,
+  CustomerOutstandingRow,
+  SupplierOutstandingRow
+} from '../models/ReceiptsPayments';
 
 /**
  * VERIFIED against the live database: CustBill01Sql (36636 rows) is a single combined
@@ -129,6 +135,62 @@ export class ReceiptsPaymentsRepository {
       discount: r.DISCOUNT,
       net: r.NETT,
       staffName: r.STAFFNAME
+    }));
+  }
+
+  /** Real, undocumented SP - found via INFORMATION_SCHEMA.ROUTINES, verified live (159 rows). */
+  async customerOutstandingBySalesperson(date: string): Promise<CustomerOutstandingRow[]> {
+    const rows = await callProcedure<{
+      CustID: string | null;
+      Bill: string | null;
+      Date: string | null;
+      Amount: number | null;
+      BalAmt: number | null;
+      AcName: string | null;
+      Phone1: string | null;
+      Ordr: string | null;
+      SalesMan: string | null;
+      'age in days': number | null;
+    }>('spCustomerOutStandingSalesManwise', { Date: date });
+    return rows.map((r) => ({
+      custId: r.CustID,
+      bill: r.Bill,
+      date: r.Date,
+      amount: r.Amount,
+      balance: r.BalAmt,
+      accountName: r.AcName,
+      phone: r.Phone1,
+      order: r.Ordr,
+      salesMan: r.SalesMan,
+      ageInDays: r['age in days']
+    }));
+  }
+
+  /** Real, undocumented SP, no parameters - found via INFORMATION_SCHEMA.ROUTINES, verified live (169 rows). */
+  async supplierOutstandingSummary(): Promise<SupplierOutstandingRow[]> {
+    const rows = await callProcedure<{
+      SuppId: string;
+      SuppName: string | null;
+      Address: string | null;
+      Phone1: string | null;
+      Fax: string | null;
+      DEBT: number | null;
+      CRED: number | null;
+      LedgerBal: number | null;
+      PaidAmt: number | null;
+      BillBal: number | null;
+    }>('spSupplierOutStandingSummary');
+    return rows.map((r) => ({
+      suppId: r.SuppId,
+      suppName: r.SuppName,
+      address: r.Address,
+      phone: r.Phone1,
+      fax: r.Fax,
+      debit: r.DEBT,
+      credit: r.CRED,
+      ledgerBalance: r.LedgerBal,
+      paidAmount: r.PaidAmt,
+      billBalance: r.BillBal
     }));
   }
 }

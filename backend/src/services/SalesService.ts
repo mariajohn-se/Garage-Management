@@ -61,6 +61,10 @@ export class SalesService {
     return salesRepository.salesMarginDetails(fromDt, toDt);
   }
 
+  async salesLabourPartsReport(fromDt: string, toDt: string) {
+    return salesRepository.salesLabourPartsReport(fromDt, toDt);
+  }
+
   async salesAnalysisReport(fromDate: string, toDate: string) {
     return salesRepository.salesAnalysisReport(fromDate, toDate);
   }

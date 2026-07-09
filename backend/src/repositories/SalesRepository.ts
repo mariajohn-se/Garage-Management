@@ -223,6 +223,11 @@ export class SalesRepository {
     return callProcedure('spSalesMarginDetails', { fromDt, toDt, bill: '0' });
   }
 
+  /** Real SP, found via INFORMATION_SCHEMA.ROUTINES, verified live (23,021 rows across full history). */
+  async salesLabourPartsReport(fromDt: string, toDt: string): Promise<Record<string, unknown>[]> {
+    return callProcedure('spSalesLabourPartsReport', { FromDt: fromDt, ToDt: toDt });
+  }
+
   /**
    * VERIFIED (2026-07-08): two similarly-named real procedures exist - `SPSALESANALYSIS`
    * (`@DTFROM`/`@DTTO`) times out (15s+) against real data, but `SPSALESANALYSISREPORT`

@@ -38,6 +38,32 @@ export interface DiscountAuditRow {
   staffName: string | null;
 }
 
+export interface CustomerOutstandingRow {
+  custId: string | null;
+  bill: string | null;
+  date: string | null;
+  amount: number | null;
+  balance: number | null;
+  accountName: string | null;
+  phone: string | null;
+  order: string | null;
+  salesMan: string | null;
+  ageInDays: number | null;
+}
+
+export interface SupplierOutstandingRow {
+  suppId: string;
+  suppName: string | null;
+  address: string | null;
+  phone: string | null;
+  fax: string | null;
+  debit: number | null;
+  credit: number | null;
+  ledgerBalance: number | null;
+  paidAmount: number | null;
+  billBalance: number | null;
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -57,5 +83,9 @@ export const receiptsPaymentsApi = {
   getBillAllocations: (bill: string) =>
     apiRequest<BillAllocation[]>(`/receipts/allocations/${encodeURIComponent(bill)}`),
   discountHistory: (fromDate: string, toDate: string, maxDiscount?: number) =>
-    apiRequest<DiscountAuditRow[]>(`/reports/discount-history${qs({ fromDate, toDate, maxDiscount })}`)
+    apiRequest<DiscountAuditRow[]>(`/reports/discount-history${qs({ fromDate, toDate, maxDiscount })}`),
+  customerOutstandingBySalesperson: (date: string) =>
+    apiRequest<CustomerOutstandingRow[]>(`/reports/customer-outstanding-salesperson${qs({ date })}`),
+  supplierOutstandingSummary: () =>
+    apiRequest<SupplierOutstandingRow[]>('/reports/supplier-outstanding-summary')
 };

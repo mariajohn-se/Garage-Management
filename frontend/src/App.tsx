@@ -54,6 +54,7 @@ import { OrderHelpPage } from './pages/OrderHelpPage';
 import { OrderCustomerChangePage } from './pages/OrderCustomerChangePage';
 import { SalesBillReportPage } from './pages/SalesBillReportPage';
 import { SalesMarginReportPage } from './pages/SalesMarginReportPage';
+import { SalesLabourPartsReportPage } from './pages/SalesLabourPartsReportPage';
 import { SalesAnalysisReportPage } from './pages/SalesAnalysisReportPage';
 import { SalesSplitReportPage } from './pages/SalesSplitReportPage';
 import { LocalPurchaseFormPage } from './pages/LocalPurchaseFormPage';
@@ -92,6 +93,8 @@ import { ReceiptsListPage } from './pages/ReceiptsListPage';
 import { PaymentsListPage } from './pages/PaymentsListPage';
 import { BillAllocationsPage } from './pages/BillAllocationsPage';
 import { DiscountHistoryPage } from './pages/DiscountHistoryPage';
+import { CustomerOutstandingBySalespersonPage } from './pages/CustomerOutstandingBySalespersonPage';
+import { SupplierOutstandingSummaryPage } from './pages/SupplierOutstandingSummaryPage';
 import { CompanyHeaderPage } from './pages/CompanyHeaderPage';
 import { MainMenuPage } from './pages/MainMenuPage';
 
@@ -289,6 +292,14 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/reports/sales-labour-parts"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <SalesLabourPartsReportPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route path="/purchases/local" element={<LocalPurchaseListPage />} />
             <Route path="/purchases/local/new" element={<LocalPurchaseFormPage />} />
@@ -457,6 +468,22 @@ export function App() {
               element={
                 <ProtectedRoute roles={[...SUPERVISOR_UP]}>
                   <DiscountHistoryPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/customer-outstanding-salesperson"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <CustomerOutstandingBySalespersonPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reports/supplier-outstanding-summary"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <SupplierOutstandingSummaryPage />
                 </ProtectedRoute>
               }
             />

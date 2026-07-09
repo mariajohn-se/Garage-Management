@@ -35,3 +35,29 @@ export interface DiscountAuditRow {
   net: number | null;
   staffName: string | null;
 }
+
+export interface CustomerOutstandingRow {
+  custId: string | null;
+  bill: string | null;
+  date: string | null;
+  amount: number | null;
+  balance: number | null;
+  accountName: string | null;
+  phone: string | null;
+  order: string | null;
+  salesMan: string | null;
+  ageInDays: number | null;
+}
+
+export interface SupplierOutstandingRow {
+  suppId: string;
+  suppName: string | null;
+  address: string | null;
+  phone: string | null;
+  fax: string | null;
+  debit: number | null;
+  credit: number | null;
+  ledgerBalance: number | null;
+  paidAmount: number | null;
+  billBalance: number | null;
+}

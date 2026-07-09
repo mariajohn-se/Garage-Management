@@ -60,6 +60,23 @@ export class ReceiptsPaymentsController {
       next(err);
     }
   }
+
+  async customerOutstandingBySalesperson(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { date } = req.query;
+      res.json(await receiptsPaymentsService.customerOutstandingBySalesperson(date as string));
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async supplierOutstandingSummary(req: Request, res: Response, next: NextFunction) {
+    try {
+      res.json(await receiptsPaymentsService.supplierOutstandingSummary());
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const receiptsPaymentsController = new ReceiptsPaymentsController();

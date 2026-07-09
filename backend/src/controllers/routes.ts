@@ -161,6 +161,11 @@ apiRouter.get('/sales', requireAuth, salesController.invoices.bind(salesControll
 apiRouter.get('/proformas', requireAuth, salesController.proformas.bind(salesController));
 apiRouter.get('/reports/sales-bill', ...supervisorUp, salesController.salesBillReport.bind(salesController));
 apiRouter.get('/reports/sales-margins', ...supervisorUp, salesController.salesMarginDetails.bind(salesController));
+apiRouter.get(
+  '/reports/sales-labour-parts',
+  ...supervisorUp,
+  salesController.salesLabourPartsReport.bind(salesController)
+);
 apiRouter.get('/reports/sales-analysis', ...supervisorUp, salesController.salesAnalysisReport.bind(salesController));
 apiRouter.get('/reports/sales-split', ...supervisorUp, salesController.monthlySplitSales.bind(salesController));
 
@@ -292,6 +297,16 @@ apiRouter.get(
   '/reports/discount-history',
   ...supervisorUp,
   receiptsPaymentsController.discountHistory.bind(receiptsPaymentsController)
+);
+apiRouter.get(
+  '/reports/customer-outstanding-salesperson',
+  ...supervisorUp,
+  receiptsPaymentsController.customerOutstandingBySalesperson.bind(receiptsPaymentsController)
+);
+apiRouter.get(
+  '/reports/supplier-outstanding-summary',
+  ...supervisorUp,
+  receiptsPaymentsController.supplierOutstandingSummary.bind(receiptsPaymentsController)
 );
 
 // --- Phase 12: Reporting, Audit Logging & Analytics ---

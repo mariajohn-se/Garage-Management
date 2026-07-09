@@ -107,5 +107,7 @@ export const salesApi = {
   salesAnalysisReport: (fromDate: string, toDate: string) =>
     apiRequest<Array<Record<string, unknown>>>(`/reports/sales-analysis${qs({ fromDate, toDate })}`),
   monthlySplitSales: (fromDate: string, toDate: string) =>
-    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-split${qs({ fromDate, toDate })}`)
+    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-split${qs({ fromDate, toDate })}`),
+  salesLabourPartsReport: (fromDate: string, toDate: string) =>
+    apiRequest<Array<Record<string, unknown>>>(`/reports/sales-labour-parts${qs({ fromDate, toDate })}`)
 };
