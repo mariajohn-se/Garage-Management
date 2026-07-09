@@ -70,7 +70,8 @@ export type UserLogAction =
   | 'Vehicle Booking Created'
   | 'Sales Return Created'
   | 'Credit Note Created'
-  | 'Debit Note Created';
+  | 'Debit Note Created'
+  | 'Insurance Invoice Created';
 
 /**
  * The live UserLog table has no separate Status column (verified via inspect-schema.js) -
