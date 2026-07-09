@@ -22,6 +22,8 @@ import { CustomerFormPage } from './pages/CustomerFormPage';
 import { CustomerHelpPage } from './pages/CustomerHelpPage';
 import { CustomerAgewisePage } from './pages/CustomerAgewisePage';
 import { CustomerVisitReportPage } from './pages/CustomerVisitReportPage';
+import { BookingListPage } from './pages/BookingListPage';
+import { BookingFormPage } from './pages/BookingFormPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
 import { SupplierHelpPage } from './pages/SupplierHelpPage';
@@ -240,6 +242,8 @@ export function App() {
             <Route path="/estimations/new" element={<EstimationFormPage />} />
             <Route path="/estimations/:estimationId" element={<EstimationDetailPage />} />
             <Route path="/estimations/:estimationId/edit" element={<EstimationFormPage />} />
+            <Route path="/bookings" element={<BookingListPage />} />
+            <Route path="/bookings/new" element={<BookingFormPage />} />
             <Route path="/jobs" element={<JobListPage />} />
             <Route path="/jobs/work-status" element={<WorkInProgressPage />} />
             <Route path="/jobs/assigned-jobs" element={<AssignedJobsPage />} />

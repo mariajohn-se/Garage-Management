@@ -66,7 +66,8 @@ export type UserLogAction =
   | 'Receipt Voucher Created'
   | 'Payment Voucher Created'
   | 'Account Head Updated'
-  | 'Company Header Updated';
+  | 'Company Header Updated'
+  | 'Vehicle Booking Created';
 
 /**
  * The live UserLog table has no separate Status column (verified via inspect-schema.js) -

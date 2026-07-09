@@ -37,6 +37,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     icon: '\u{1F527}',
     links: [
       { label: 'Estimations', to: '/estimations' },
+      { label: 'Vehicle Bookings', to: '/bookings' },
       { label: 'Jobs / Work Orders', to: '/jobs' },
       { label: 'Work In Progress', to: '/jobs/work-status' },
       { label: 'Assigned Jobs', to: '/jobs/assigned-jobs' },

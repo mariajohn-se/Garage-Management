@@ -8,6 +8,7 @@ import { vehicleController } from './VehicleController';
 import { attachmentController, uploadMiddleware } from './AttachmentController';
 import { remarksController } from './RemarksController';
 import { estimationController } from './EstimationController';
+import { bookingController } from './BookingController';
 import { jobController } from './JobController';
 import { jobStatusMasterController } from './JobStatusMasterController';
 import { orderController } from './OrderController';
@@ -122,6 +123,9 @@ apiRouter.post('/estimations', requireAuth, estimationController.create.bind(est
 apiRouter.get('/estimations/:id', requireAuth, estimationController.get.bind(estimationController));
 apiRouter.put('/estimations/:id', requireAuth, estimationController.update.bind(estimationController));
 apiRouter.put('/estimations/:id/approve', ...supervisorUp, estimationController.approve.bind(estimationController));
+
+apiRouter.get('/bookings', requireAuth, bookingController.list.bind(bookingController));
+apiRouter.post('/bookings', requireAuth, bookingController.create.bind(bookingController));
 
 apiRouter.get('/jobs/work-in-progress', requireAuth, jobController.listWorkInProgress.bind(jobController));
 apiRouter.get('/jobs/assigned', requireAuth, jobController.listAssigned.bind(jobController));
