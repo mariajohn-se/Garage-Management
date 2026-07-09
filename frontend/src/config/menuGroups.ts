@@ -57,7 +57,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Sales Margin Details', to: '/reports/sales-margins', requires: 'privileged' },
       { label: 'Sales Analysis', to: '/reports/sales-analysis', requires: 'privileged' },
       { label: 'Sales Report - Section Wise', to: '/reports/sales-split', requires: 'privileged' },
-      { label: 'Sales Labour & Parts Report', to: '/reports/sales-labour-parts', requires: 'privileged' }
+      { label: 'Sales Labour & Parts Report', to: '/reports/sales-labour-parts', requires: 'privileged' },
+      { label: 'Sales Returns', to: '/sales-returns' }
     ]
   },
   {

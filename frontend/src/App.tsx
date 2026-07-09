@@ -24,6 +24,8 @@ import { CustomerAgewisePage } from './pages/CustomerAgewisePage';
 import { CustomerVisitReportPage } from './pages/CustomerVisitReportPage';
 import { BookingListPage } from './pages/BookingListPage';
 import { BookingFormPage } from './pages/BookingFormPage';
+import { SalesReturnListPage } from './pages/SalesReturnListPage';
+import { SalesReturnFormPage } from './pages/SalesReturnFormPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
 import { SupplierHelpPage } from './pages/SupplierHelpPage';
@@ -313,6 +315,8 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/sales-returns" element={<SalesReturnListPage />} />
+            <Route path="/sales-returns/new" element={<SalesReturnFormPage />} />
 
             <Route path="/purchases/local" element={<LocalPurchaseListPage />} />
             <Route path="/purchases/local/new" element={<LocalPurchaseFormPage />} />
