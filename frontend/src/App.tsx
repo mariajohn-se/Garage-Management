@@ -19,7 +19,6 @@ import { EmployeeListPage } from './pages/EmployeeListPage';
 import { ActionLogPage } from './pages/ActionLogPage';
 import { CustomerListPage } from './pages/CustomerListPage';
 import { CustomerFormPage } from './pages/CustomerFormPage';
-import { CustomerHelpPage } from './pages/CustomerHelpPage';
 import { CustomerAgewisePage } from './pages/CustomerAgewisePage';
 import { CustomerVisitReportPage } from './pages/CustomerVisitReportPage';
 import { BookingListPage } from './pages/BookingListPage';
@@ -206,7 +205,6 @@ export function App() {
             />
 
             <Route path="/customers" element={<CustomerListPage />} />
-            <Route path="/customers/help" element={<CustomerHelpPage />} />
             <Route
               path="/customers/agewise"
               element={
