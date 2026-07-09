@@ -124,7 +124,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Payments', to: '/payments' },
       { label: 'Discount History Audit', to: '/reports/discount-history', requires: 'privileged' },
       { label: 'Customer Outstanding by Salesperson', to: '/reports/customer-outstanding-salesperson', requires: 'privileged' },
-      { label: 'Supplier Outstanding Summary', to: '/reports/supplier-outstanding-summary', requires: 'privileged' }
+      { label: 'Supplier Outstanding Summary', to: '/reports/supplier-outstanding-summary', requires: 'privileged' },
+      { label: 'Credit / Debit Notes', to: '/cr-dr-notes', requires: 'privileged' }
     ]
   },
   {

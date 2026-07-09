@@ -10,6 +10,7 @@ import { remarksController } from './RemarksController';
 import { estimationController } from './EstimationController';
 import { bookingController } from './BookingController';
 import { salesReturnController } from './SalesReturnController';
+import { crDrNoteController } from './CrDrNoteController';
 import { jobController } from './JobController';
 import { jobStatusMasterController } from './JobStatusMasterController';
 import { orderController } from './OrderController';
@@ -131,6 +132,10 @@ apiRouter.post('/bookings', requireAuth, bookingController.create.bind(bookingCo
 apiRouter.get('/sales-returns', requireAuth, salesReturnController.list.bind(salesReturnController));
 apiRouter.post('/sales-returns', requireAuth, salesReturnController.create.bind(salesReturnController));
 apiRouter.get('/sales-returns/:id', requireAuth, salesReturnController.get.bind(salesReturnController));
+
+apiRouter.get('/cr-dr-notes', ...supervisorUp, crDrNoteController.list.bind(crDrNoteController));
+apiRouter.post('/cr-dr-notes', ...supervisorUp, crDrNoteController.create.bind(crDrNoteController));
+apiRouter.get('/cr-dr-notes/:id', ...supervisorUp, crDrNoteController.get.bind(crDrNoteController));
 
 apiRouter.get('/jobs/work-in-progress', requireAuth, jobController.listWorkInProgress.bind(jobController));
 apiRouter.get('/jobs/assigned', requireAuth, jobController.listAssigned.bind(jobController));

@@ -26,6 +26,8 @@ import { BookingListPage } from './pages/BookingListPage';
 import { BookingFormPage } from './pages/BookingFormPage';
 import { SalesReturnListPage } from './pages/SalesReturnListPage';
 import { SalesReturnFormPage } from './pages/SalesReturnFormPage';
+import { CrDrNoteListPage } from './pages/CrDrNoteListPage';
+import { CrDrNoteFormPage } from './pages/CrDrNoteFormPage';
 import { SupplierListPage } from './pages/SupplierListPage';
 import { SupplierFormPage } from './pages/SupplierFormPage';
 import { SupplierHelpPage } from './pages/SupplierHelpPage';
@@ -317,6 +319,22 @@ export function App() {
             />
             <Route path="/sales-returns" element={<SalesReturnListPage />} />
             <Route path="/sales-returns/new" element={<SalesReturnFormPage />} />
+            <Route
+              path="/cr-dr-notes"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <CrDrNoteListPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cr-dr-notes/new"
+              element={
+                <ProtectedRoute roles={[...SUPERVISOR_UP]}>
+                  <CrDrNoteFormPage />
+                </ProtectedRoute>
+              }
+            />
 
             <Route path="/purchases/local" element={<LocalPurchaseListPage />} />
             <Route path="/purchases/local/new" element={<LocalPurchaseFormPage />} />
