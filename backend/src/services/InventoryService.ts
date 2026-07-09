@@ -66,6 +66,11 @@ export class InventoryService {
     return stockRepository.reorderStatus(filters);
   }
 
+  async stockMovementFrequency(fromDate: string, toDate: string, direction: 'fast' | 'slow', limit: number) {
+    if (!fromDate || !toDate) throw new ValidationError('fromDate and toDate are required.');
+    return stockRepository.stockMovementFrequency(fromDate, toDate, direction, limit);
+  }
+
   async listGodowns() {
     return stockRepository.listGodowns();
   }

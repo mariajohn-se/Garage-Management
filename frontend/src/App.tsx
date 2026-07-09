@@ -70,6 +70,7 @@ import { CurrentStockPage } from './pages/CurrentStockPage';
 import { ReorderStatusPage } from './pages/ReorderStatusPage';
 import { StockValuationReportPage } from './pages/StockValuationReportPage';
 import { StockAgingReportPage } from './pages/StockAgingReportPage';
+import { StockMovementFrequencyPage } from './pages/StockMovementFrequencyPage';
 import { VoucherListPage } from './pages/VoucherListPage';
 import { JournalVoucherFormPage } from './pages/JournalVoucherFormPage';
 import { ReceiptPaymentFormPage } from './pages/ReceiptPaymentFormPage';
@@ -343,6 +344,7 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/inventory/movement-frequency" element={<StockMovementFrequencyPage />} />
 
             <Route path="/banking/vouchers" element={<VoucherListPage />} />
             <Route path="/banking/vouchers/:id" element={<VoucherDetailPage />} />

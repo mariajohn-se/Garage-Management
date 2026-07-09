@@ -83,7 +83,8 @@ export const MENU_GROUPS: MenuGroup[] = [
       { label: 'Current Stock / Availability', to: '/inventory/current-stock' },
       { label: 'Reorder Status', to: '/inventory/reorder-status' },
       { label: 'Stock Valuation Report', to: '/inventory/valuation', requires: 'privileged' },
-      { label: 'Stock Aging Report', to: '/inventory/aging', requires: 'privileged' }
+      { label: 'Stock Aging Report', to: '/inventory/aging', requires: 'privileged' },
+      { label: 'Fast / Slow-Moving Items', to: '/inventory/movement-frequency' }
     ]
   },
   {

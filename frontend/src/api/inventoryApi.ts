@@ -64,6 +64,13 @@ export interface StockMovementInput {
   lines: StockMovementLineInput[];
 }
 
+export interface StockMovementFrequencyItem {
+  itemCode: string;
+  tag: string | null;
+  description: string | null;
+  movementCount: number;
+}
+
 interface Paged<T> {
   items: T[];
   total: number;
@@ -101,5 +108,8 @@ export const inventoryApi = {
   stockValuation: (asOfDate: string, type: '0' | '1' = '0') =>
     apiRequest<Array<Record<string, unknown>>>(`/inventory/valuation${qs({ asOfDate, type })}`),
   stockAging: (asOfDate: string, days: number, type: '0' | '1' = '0') =>
-    apiRequest<Array<Record<string, unknown>>>(`/inventory/aging${qs({ asOfDate, days, type })}`)
+    apiRequest<Array<Record<string, unknown>>>(`/inventory/aging${qs({ asOfDate, days, type })}`),
+
+  stockMovementFrequency: (fromDate: string, toDate: string, direction: 'fast' | 'slow', limit = 50) =>
+    apiRequest<StockMovementFrequencyItem[]>(`/inventory/movement-frequency${qs({ fromDate, toDate, direction, limit })}`)
 };

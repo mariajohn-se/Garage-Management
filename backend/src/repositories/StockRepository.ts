@@ -6,7 +6,8 @@ import {
   StockTransactionItem,
   CurrentStockItem,
   ReorderStatusItem,
-  StockMovementInput
+  StockMovementInput,
+  StockMovementFrequencyItem
 } from '../models/Stock';
 
 /**
@@ -176,6 +177,33 @@ export class StockRepository {
   /** Real SP, not in DB_CONNECTION_SPEC_v12.md's catalog but confirmed live. */
   async stockAging(asOfDate: string, days: number, type: '0' | '1' = '0'): Promise<Record<string, unknown>[]> {
     return callProcedure('spStockAgingReport', { type, Date: asOfDate, Days: days });
+  }
+
+  /**
+   * VERIFIED (2026-07-09): spFastMovingItems is real and live (10,572 rows against a wide date
+   * range - most real transaction history in this database predates 2020, so a narrow recent
+   * range legitimately returns 0). It returns ITEMCODE/TAG/Description/cnt unsorted by cnt (its
+   * own output order is by ITEMCODE) - "fast" vs "slow" moving is the same procedure result,
+   * just re-sorted by cnt here rather than a second procedure (none exists), then capped to
+   * `limit` since the full result can run into the thousands.
+   */
+  async stockMovementFrequency(
+    fromDate: string,
+    toDate: string,
+    direction: 'fast' | 'slow',
+    limit: number
+  ): Promise<StockMovementFrequencyItem[]> {
+    const rows = await callProcedure<{ cnt: number; ITEMCODE: string; TAG: string | null; Description: string | null }>(
+      'spFastMovingItems',
+      { FromDate: fromDate, Todate: toDate, minCount: 1 }
+    );
+    const sorted = rows.sort((a, b) => (direction === 'fast' ? b.cnt - a.cnt : a.cnt - b.cnt));
+    return sorted.slice(0, limit).map((r) => ({
+      itemCode: r.ITEMCODE,
+      tag: r.TAG,
+      description: r.Description,
+      movementCount: r.cnt
+    }));
   }
 
   /**

@@ -222,6 +222,11 @@ apiRouter.get('/inventory/current-stock', requireAuth, inventoryController.curre
 apiRouter.get('/inventory/valuation', ...supervisorUp, inventoryController.stockValuation.bind(inventoryController));
 apiRouter.get('/inventory/aging', ...supervisorUp, inventoryController.stockAging.bind(inventoryController));
 apiRouter.get('/inventory/reorder-status', requireAuth, inventoryController.reorderStatus.bind(inventoryController));
+apiRouter.get(
+  '/inventory/movement-frequency',
+  requireAuth,
+  inventoryController.stockMovementFrequency.bind(inventoryController)
+);
 apiRouter.get('/inventory/stock-in', requireAuth, inventoryController.listStockIn.bind(inventoryController));
 apiRouter.post('/inventory/stock-in', requireAuth, inventoryController.createStockIn.bind(inventoryController));
 apiRouter.get('/inventory/stock-out', requireAuth, inventoryController.listStockOut.bind(inventoryController));

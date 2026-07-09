@@ -106,6 +106,23 @@ export class InventoryController {
     }
   }
 
+  async stockMovementFrequency(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { fromDate, toDate, direction, limit } = req.query;
+      if (!fromDate || !toDate) throw new ValidationError('fromDate and toDate are required.');
+      res.json(
+        await inventoryService.stockMovementFrequency(
+          fromDate as string,
+          toDate as string,
+          direction === 'slow' ? 'slow' : 'fast',
+          Math.min(200, Math.max(1, Number(limit) || 50))
+        )
+      );
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async listGodowns(req: Request, res: Response, next: NextFunction) {
     try {
       res.json(await inventoryService.listGodowns());

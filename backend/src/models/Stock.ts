@@ -79,3 +79,10 @@ export interface StockMovementInput {
   remarks: string | null;
   lines: StockMovementLineInput[];
 }
+
+export interface StockMovementFrequencyItem {
+  itemCode: string;
+  tag: string | null;
+  description: string | null;
+  movementCount: number;
+}
