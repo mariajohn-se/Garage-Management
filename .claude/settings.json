@@ -7,7 +7,8 @@
       "Bash(curl -s -H 'Authorization: Bearer __TRACKED_VAR__' http://localhost:3001/api/v1/estimations/advisors --max-time 15)",
       "Bash(curl -s -H 'Authorization: Bearer __CMDSUB_OUTPUT__' http://localhost:3001/api/v1/estimations/6416 --max-time 15)",
       "Bash(curl -s -H 'Authorization: Bearer __CMDSUB_OUTPUT__' 'http://localhost:3001/api/v1/estimations?staffId=35&fromDate=2011-10-01&toDate=2011-10-31&page=1&limit=3' --max-time 15)",
-      "Bash(curl -s -X POST -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"custId\":\"7555\",\"vehId\":7133,\"orderDate\":\"2026-07-09\",\"custNote\":\"LIVE-VERIFY-TEST-DELETE-ME\",\"estimationRef\":\"1015591\",\"items\":[{\"itemCode\":\"10\",\"qty\":1,\"rate\":50}]}' http://localhost:3001/api/v1/orders --max-time 15)"
+      "Bash(curl -s -X POST -H 'Authorization: Bearer __CMDSUB_OUTPUT__' -H 'Content-Type: application/json' -d '{\"custId\":\"7555\",\"vehId\":7133,\"orderDate\":\"2026-07-09\",\"custNote\":\"LIVE-VERIFY-TEST-DELETE-ME\",\"estimationRef\":\"1015591\",\"items\":[{\"itemCode\":\"10\",\"qty\":1,\"rate\":50}]}' http://localhost:3001/api/v1/orders --max-time 15)",
+      "Bash(curl -s http://localhost:3000/api/v1/health --max-time 10)"
     ]
   }
 }
